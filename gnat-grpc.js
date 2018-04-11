@@ -10,7 +10,7 @@ const {serviceConflict: checkServiceConflict} = check;
 class GnatGrpc {
     constructor () {
         this.services = {};
-        this.root = new protobuf.Root();
+        this.root = new config.protobufjs.Root();
     }
 
     static _getServiceKey ({pkgName, service}) {

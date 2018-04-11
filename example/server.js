@@ -53,4 +53,5 @@ app.listen(APP_PORT, async () => {
         ),
     ]);
     server.start();
+    console.log(`Server listening on ${PORT}...`);
 });
