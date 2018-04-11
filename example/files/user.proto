@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option objc_class_prefix = "HLW";
+
+package egg;
+
+service User {
+    rpc GetUserById (IDRequest) returns (UserResponse) {}
+}
+
+message IDRequest {
+    string id = 1;
+}
+
+message UserResponse {
+    string id = 1;
+    string nickname = 2;
+}
