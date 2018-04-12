@@ -5,7 +5,7 @@
 const util = require('./utils');
 const config = require('./config');
 const Server = require('./server');
-const Client = require('./Client');
+const Client = require('./client');
 
 module.exports = {
     util,

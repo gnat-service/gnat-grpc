@@ -1,18 +1,15 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
-const Server = require('../server');
+const {Server, config: ggConf} = require('../');
 const config = require('./config');
-const ggConf = require('../config');
 const app = require('./files');
 const PATH = require('path');
+const grpc = require('grpc');
+const protobufjs = require('protobufjs');
 
-ggConf._config({
-    grpc: require('grpc'),
-    protobufjs: require('protobufjs')
-});
+ggConf({grpc, protobufjs});
 
-const {grpc} = ggConf;
 const {PORT, APP_PORT} = config;
 const protoPath = PATH.resolve(__dirname, config.protoPath);
 const protoPath2 = PATH.resolve(__dirname, config.protoPath2);
@@ -26,7 +23,6 @@ const throwAnErr = ({name}) => {
     err.code = grpc.status.PERMISSION_DENIED;
     throw err;
 };
-
 
 app.listen(APP_PORT, async () => {
     const server = new Server({

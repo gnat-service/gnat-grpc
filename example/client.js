@@ -1,12 +1,11 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
-const Client = require('../client');
+const {Client, config: ggConf} = require('../');
 const config = require('./config');
-const ggConf = require('../config');
 const PATH = require('path');
 
-ggConf._config({
+ggConf({
     grpc: require('grpc'),
     protobufjs: require('protobufjs')
 });
