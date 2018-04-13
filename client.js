@@ -74,7 +74,8 @@ class Client extends GG {
     }
 
     getService (opts) {
-        return this.clients[GG._getServiceKey(opts)];
+        const key = typeof opts === 'string' ? opts : GG._getServiceKey(opts);
+        return this.clients[key];
     }
 }
 
