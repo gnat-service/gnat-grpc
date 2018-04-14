@@ -27,10 +27,6 @@ const throwAnErr = ({name}) => {
     throw err;
 };
 
-beforeEach(async () =>
-    new Promise(resolve => setTimeout(resolve, 100))
-);
-
 describe('GnatGrpc', () => {
     describe('Server', () => {
         const assertServer = ({protoPath, pkgName, service}) => {
