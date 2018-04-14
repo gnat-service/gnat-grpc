@@ -5,7 +5,7 @@ const config = require('./config');
 const utils = require('./utils');
 
 const {protobuf, check} = utils;
-const {serviceConflict: checkServiceConflict} = check;
+const {serviceConflict: checkServiceConflict, strOpt: checkStrOpt} = check;
 
 class GnatGrpc {
     constructor () {
@@ -17,18 +17,49 @@ class GnatGrpc {
         return `${pkgName}.${service}`;
     }
 
+    static _isServiceClient (ctr) {
+        return ctr.name === 'ServiceClient';
+    }
+
     async _loadProto (opts) {
+        opts = Object.assign(
+            {fileLocation: 'local'},
+            opts
+        );
+
+        if (opts.filename) {
+            opts.protoPath = config._getPath(opts.filename);
+        }
+
+        checkStrOpt(opts, 'fileLocation');
+        checkStrOpt(opts, 'protoPath');
+        checkStrOpt(opts, 'filename', false);
+        checkStrOpt(opts, 'pkgName', false);
+        checkStrOpt(opts, 'service', false);
+
         this.pkg = opts.fileLocation === 'remote' ?
             await protobuf.loadFromRemote(opts.protoPath, this.root) :
             config.grpc.load(opts.protoPath);
 
-        const svc = this.pkg[opts.pkgName][opts.service];
-        const key = GnatGrpc._getServiceKey(opts);
+        const arr = [];
+        Object.keys(this.pkg).forEach(pkgName => {
+            const svcMap = this.pkg[pkgName];
 
-        checkServiceConflict(this.services, key);
+            Object.keys(svcMap)
+                .forEach(name => {
+                    const Svc = svcMap[name];
+                    if (!GnatGrpc._isServiceClient(Svc)) {
+                        return;
+                    }
+                    opts.pkgName = opts.pkgName || pkgName;
+                    const key = GnatGrpc._getServiceKey({pkgName, service: name});
+                    checkServiceConflict(this.services, key);
+                    this.services[key] = Svc;
+                    arr.push({pkg: pkgName, name, Svc});
+                });
+        });
 
-        this.services[key] = svc;
-        return svc;
+        return arr;
     }
 }
 

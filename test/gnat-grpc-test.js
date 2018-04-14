@@ -8,7 +8,11 @@ const PATH = require('path');
 const {expect} = require('chai');
 const {random} = require('faker');
 
-config._config({grpc: require('grpc'), protobufjs: require('protobufjs')});
+config._config({
+    grpc: require('grpc'),
+    protobufjs: require('protobufjs'),
+    root: PATH.join(__dirname, 'file-server/files'),
+});
 const {grpc} = config;
 
 const PORT = '50054';
@@ -33,10 +37,7 @@ describe('GnatGrpc', () => {
                 await Promise.all([
                     server.registerService(
                         {
-                            fileLocation: 'local',
-                            protoPath,
-                            pkgName: 'helloworld',
-                            service: 'Greeter'
+                            filename: 'helloworld.proto',
                         },
                         {sayHello}
                     ),
@@ -127,15 +128,22 @@ describe('GnatGrpc', () => {
 
         before(async () => {
             service = await client.checkout({
-                fileLocation: 'local',
                 bindPath: `localhost:${PORT}`,
-                protoPath,
-                pkgName: 'helloworld',
-                service: 'Greeter'
+                filename: 'helloworld.proto',
             });
         });
 
         after(done => server.tryShutdown(done));
+
+        context('Client#getService()', () => {
+            it('should retrieve a service by `opts`', async () => {
+                expect(client.getService({pkgName: 'helloworld', service: 'Greeter'}))
+                    .to.equal(service);
+            });
+            it('should retrieve a service by formatted key', async () => {
+                expect(client.getService('helloworld.Greeter')).to.equal(service);
+            });
+        });
 
         it('should create a grpc client', async () => {
             const service2 = await client.checkout({

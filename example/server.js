@@ -15,8 +15,20 @@ const protoPath = PATH.resolve(__dirname, config.protoPath);
 const protoPath2 = PATH.resolve(__dirname, config.protoPath2);
 const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
 
-const sayHello = async function ({name}) {
-    return {message: `Hello ${name}`};
+const sayHello = async function ({name, gender}) {
+    let title;
+    switch (gender) {
+        case 'MALE':
+            title = 'Mr ';
+            break;
+        case 'FEMALE':
+            title = 'Miss ';
+            break;
+        default:
+            title = '';
+            break;
+    }
+    return {message: `Hello ${title}${name}`};
 };
 const throwAnErr = ({name}) => {
     const err = new Error(`name "${name}" is not correct.`);
@@ -31,8 +43,8 @@ app.listen(APP_PORT, async () => {
     await Promise.all([
         server.registerService(
             {
-                fileLocation: 'remote',
-                protoPath: protoUrl,
+                fileLocation: 'local',
+                protoPath: protoPath,
                 pkgName: 'helloworld',
                 service: 'Greeter'
             },
@@ -42,7 +54,7 @@ app.listen(APP_PORT, async () => {
             {
                 fileLocation: 'local',
                 protoPath: protoPath2,
-                pkgName: 'helloworld2',
+                pkgName: 'helloworld',
                 service: 'Greeter2'
             },
             {sayHello}

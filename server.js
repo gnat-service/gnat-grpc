@@ -41,24 +41,17 @@ class Server extends GG {
     }
 
     async registerService (opts, methods) {
-        opts = Object.assign(
-            {fileLocation: 'local'},
-            opts
-        );
-        checkStrOpt(opts, 'fileLocation');
-        checkStrOpt(opts, 'protoPath');
-        checkStrOpt(opts, 'pkgName');
-        checkStrOpt(opts, 'service');
-
-        const svc = await this._loadProto(opts);
-        const handledMethods = methodsHandler(methods);
-        this.server.addService(svc.service, handledMethods);
+        const svcMapping = await this._loadProto(opts);
+        svcMapping.forEach(({Svc}) => {
+            const handledMethods = methodsHandler(methods);
+            this.server.addService(Svc.service, handledMethods);
+        });
     }
 
-    start () {
+    start (...args) {
         const opts = this._options;
         this.server.bind(opts.bindPath, opts.credentials || config.grpc.ServerCredentials.createInsecure());
-        return this.server.start();
+        return this.server.start(...args);
     }
 }
 

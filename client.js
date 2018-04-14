@@ -48,29 +48,28 @@ class Client extends GG {
     }
 
     async checkout (opts) {
-        opts = Object.assign(
-            {fileLocation: 'local'},
-            opts
-        );
         checkStrOpt(opts, 'bindPath');
-        checkStrOpt(opts, 'fileLocation');
-        checkStrOpt(opts, 'protoPath');
-        checkStrOpt(opts, 'pkgName');
-        checkStrOpt(opts, 'service');
         if (!opts.credentials) {
             console.warn('`opts.credentials` is not set, an insecure one will be used.');
         }
 
-        const key = GG._getServiceKey(opts);
-        const Svc = await this._loadProto(opts);
+        const svcMapping = await this._loadProto(opts);
 
-        const client = new Svc(opts.bindPath, opts.credentials || config.grpc.credentials.createInsecure());
-        this.rawClients[key] = client;
+        const arr = svcMapping.map(({pkg, name, Svc}) => {
+            const key = GG._getServiceKey({pkgName: pkg, service: name});
+            const client = new Svc(opts.bindPath, opts.credentials || config.grpc.credentials.createInsecure());
+            this.rawClients[key] = client;
 
-        const wrappedClient = this._wrapMethods(client, Svc);
-        this.clients[key] = wrappedClient;
+            const wrappedClient = this._wrapMethods(client, Svc);
+            this.clients[key] = wrappedClient;
+            return wrappedClient;
+        });
 
-        return wrappedClient;
+        if (arr.length === 1) {
+            return arr[0];
+        }
+
+        return arr;
     }
 
     getService (opts) {

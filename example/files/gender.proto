@@ -4,5 +4,5 @@ package saturn.gender;
 
 enum Gender {
     MALE = 0;
-    FAMALE = 1;
+    FEMALE = 1;
 }
