@@ -175,33 +175,6 @@ describe('GnatGrpc', () => {
             });
         });
 
-        context('.checkoutServices()', () => {
-            let client;
-            beforeEach(async () => {
-                client = await Client.checkoutServices({
-                    bindPath: `localhost:${PORT}`,
-                    services: [
-                        {filename: 'helloworld.proto'},
-                        {filename: 'helloworld2.proto'},
-                    ]
-                });
-            });
-
-            afterEach(() => client.close());
-
-            it('should create services', () =>
-                Promise.all([
-                    'helloworld.Greeter',
-                    'helloworld2.Greeter2'
-                ].map(async key => {
-                    const service = client.getService(key);
-                    const name = random.word();
-                    const ret = await service.sayHello({name});
-                    expect(ret).to.have.property('message').which.equal(`Hello ${name}`);
-                }))
-            );
-        });
-
         context('#constructor()', () => {
             let service2;
             beforeEach(async () => {
@@ -240,6 +213,37 @@ describe('GnatGrpc', () => {
                 expect(err).to.have.property('code').which.equal(grpc.status.PERMISSION_DENIED);
                 expect(err).to.have.property('details').which.equal(`name "${name}" is not correct.`);
             });
+        });
+
+        context('.checkoutServices()', () => {
+            let client;
+            beforeEach(async () => {
+                client = await Client.checkoutServices({
+                    bindPath: `localhost:${PORT}`,
+                    services: [
+                        {
+                            // Cover the parent level `bindPath`.
+                            // bindPath: `localhost:${PORT}`,
+                            filename: 'helloworld.proto'
+                        },
+                        {filename: 'helloworld2.proto'},
+                    ]
+                });
+            });
+
+            afterEach(() => client.close());
+
+            it('should create services', () =>
+                Promise.all([
+                    'helloworld.Greeter',
+                    'helloworld2.Greeter2'
+                ].map(async key => {
+                    const service = client.getService(key);
+                    const name = random.word();
+                    const ret = await service.sayHello({name});
+                    expect(ret).to.have.property('message').which.equal(`Hello ${name}`);
+                }))
+            );
         });
     });
 });
