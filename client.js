@@ -76,6 +76,23 @@ class Client extends GG {
         const key = typeof opts === 'string' ? opts : GG._getServiceKey(opts);
         return this.clients[key];
     }
+
+    close () {
+        Object.keys(this.rawClients).forEach(key => {
+            const c = this.rawClients[key];
+            if (c && isFn(c.close)) {
+                c.close();
+            }
+        });
+    }
+
+    static async checkoutServices ({bindPath, services}) {
+        const client = new Client();
+        await Promise.all(
+            services.map(opts => client.checkout(Object.assign({bindPath}, opts)))
+        );
+        return client;
+    }
 }
 
 module.exports = Client;

@@ -28,6 +28,9 @@ const methodsHandler = function (methods) {
     return coll;
 };
 
+const svcMappingSym = Symbol('serviceMapping');
+const servicesSym = Symbol('services');
+
 class Server extends GG {
     constructor (opts = {}) {
         super();
@@ -38,20 +41,46 @@ class Server extends GG {
 
         this.server = new config.grpc.Server();
         this._options = opts;
+        this[svcMappingSym] = [];
+        this[servicesSym] = {};
+    }
+
+    async _loadProto (opts) {
+        const svcMapping = await super._loadProto(opts);
+        return svcMapping.map(({pkg, name, Svc}) => {
+            const key = GG._getServiceKey({pkgName: pkg, service: name});
+            const obj = {service: Svc.service, key};
+            this[svcMappingSym].push(obj);
+            this[servicesSym][key] = Svc.service;
+            return obj;
+        });
+    }
+
+    addMethods (key, methods) {
+        const handledMethods = methodsHandler(methods);
+        this.server.addService(this[servicesSym][key], handledMethods);
+        return this;
     }
 
     async registerService (opts, methods) {
-        const svcMapping = await this._loadProto(opts);
-        svcMapping.forEach(({Svc}) => {
-            const handledMethods = methodsHandler(methods);
-            this.server.addService(Svc.service, handledMethods);
-        });
+        const mapping = await this._loadProto(opts);
+        mapping.map(({key}) => this.addMethods(key, methods));
     }
 
     start (...args) {
         const opts = this._options;
         this.server.bind(opts.bindPath, opts.credentials || config.grpc.ServerCredentials.createInsecure());
         return this.server.start(...args);
+    }
+
+    static async addServer (configs) {
+        const server = new Server(configs);
+        const {services, methods} = configs;
+        await Promise.all(services.map(cfg => server._loadProto(cfg)));
+
+        methods && Object.keys(methods).forEach(key => server.addMethods(key, methods[key]));
+
+        return server;
     }
 }
 
