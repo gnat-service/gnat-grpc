@@ -163,7 +163,7 @@ describe('GnatGrpc', () => {
         });
 
         afterEach(done => server.tryShutdown(done));
-        afterEach(() => client.rawClients[`helloworld.Greeter`].close());
+        afterEach(() => client.close());
 
         context('#getService()', () => {
             it('should retrieve a service by `opts`', async () => {
@@ -186,7 +186,7 @@ describe('GnatGrpc', () => {
                     service: 'Greeter2'
                 });
             });
-            afterEach(() => client.rawClients[`helloworld2.Greeter2`].close());
+            afterEach(() => client.close());
 
             it('should create a grpc client', async () => {
                 const name = random.word();
