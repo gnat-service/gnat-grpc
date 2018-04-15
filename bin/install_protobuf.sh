@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-PROTOC_VER=3.3.0
+PROTOC_VER=3.5.1
 PROTOC_RELEASE=protoc-$PROTOC_VER-linux-x86_64
 PROTOC_ZIP=$PROTOC_RELEASE.zip
 
