@@ -18,7 +18,7 @@ config._config({
 });
 const assertProto = (obj, {pkgName, svc, types}) => {
     const pkg = get(obj, pkgName);
-    expect(obj).to.have.deep.property('fireball.helloworld').which.be.an('Object');
+    expect(obj).to.have.deep.property(pkgName).which.be.an('Object');
     expect(pkg)
         .to.have.property(svc)
         .which.have.property('service')
