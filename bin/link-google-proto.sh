@@ -2,4 +2,4 @@
 
 mkdir -p $1
 
-cp -a /usr/local/include/google $1
+ln -sv /usr/local/include/google $1

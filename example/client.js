@@ -8,7 +8,7 @@ const PATH = require('path');
 ggConf({
     grpc: require('grpc'),
     protobufjs: require('protobufjs'),
-    root: PATH.join(__dirname, 'files'),
+    root: __dirname,
 });
 const {PORT, APP_PORT} = config;
 
@@ -21,15 +21,13 @@ const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
     const service = await client.checkout({
         fileLocation: 'local',
         bindPath: `localhost:${PORT}`,
-        filename: 'helloworld.proto',
+        filename: 'fireball/files/helloworld.proto',
     });
 
     const service2 = await client.checkout({
         fileLocation: 'local',
         bindPath: `localhost:${PORT}`,
         protoPath: protoPath2,
-        pkgName: 'helloworld',
-        service: 'Greeter2'
     });
 
     const ret = await service.sayHello({name: 'World', gender: 'FEMALE'});

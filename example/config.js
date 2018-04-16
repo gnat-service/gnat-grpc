@@ -5,6 +5,6 @@
 module.exports = {
     PORT: '50055',
     APP_PORT: 7777,
-    protoPath: './files/helloworld.proto',
-    protoPath2: './files/helloworld2.proto',
+    protoPath: './fireball/files/helloworld.proto',
+    protoPath2: './fireball/files/helloworld2.proto',
 };

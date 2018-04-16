@@ -5,6 +5,7 @@ const config = require('../config');
 const Server = require('../server');
 const Client = require('../client');
 const PATH = require('path');
+const get = require('lodash.get');
 const {expect} = require('chai');
 const {random} = require('faker');
 
@@ -30,7 +31,7 @@ const throwAnErr = ({name}) => {
 describe('GnatGrpc', () => {
     describe('Server', () => {
         const assertServer = ({protoPath, pkgName, service}) => {
-            const hello_proto = config.grpc.load(protoPath)[pkgName];
+            const hello_proto = get(config.grpc.load(protoPath), pkgName);
             const client = new hello_proto[service](`localhost:${PORT}`, config.grpc.credentials.createInsecure());
 
             const name = random.word();
@@ -61,7 +62,7 @@ describe('GnatGrpc', () => {
                         {
                             fileLocation: 'local',
                             protoPath: protoPath2,
-                            pkgName: 'helloworld2',
+                            pkgName: 'fireball.helloworld2',
                             service: 'Greeter2'
                         },
                         {sayHello}
@@ -73,13 +74,13 @@ describe('GnatGrpc', () => {
             afterEach(done => server.server.tryShutdown(done));
 
             it('should create a grpc server', () =>
-                assertServer({protoPath, pkgName: 'helloworld', service: 'Greeter'})
+                assertServer({protoPath, pkgName: 'fireball.helloworld', service: 'Greeter'})
             );
 
             it('should support multi services', () =>
                 Promise.all([
-                    assertServer({protoPath, pkgName: 'helloworld', service: 'Greeter'}),
-                    assertServer({protoPath: protoPath2, pkgName: 'helloworld2', service: 'Greeter2'})
+                    assertServer({protoPath, pkgName: 'fireball.helloworld', service: 'Greeter'}),
+                    assertServer({protoPath: protoPath2, pkgName: 'fireball.helloworld2', service: 'Greeter2'})
                 ])
             );
         });
@@ -95,8 +96,8 @@ describe('GnatGrpc', () => {
                         {filename: 'helloworld2.proto'},
                     ],
                     methods: {
-                        'helloworld.Greeter': {sayHello},
-                        'helloworld2.Greeter2': {sayHello},
+                        'fireball.helloworld.Greeter': {sayHello},
+                        'fireball.helloworld2.Greeter2': {sayHello},
                     }
                 });
                 server.start();
@@ -106,8 +107,8 @@ describe('GnatGrpc', () => {
 
             it('should add multi services', () =>
                 Promise.all([
-                    assertServer({protoPath, pkgName: 'helloworld', service: 'Greeter'}),
-                    assertServer({protoPath: protoPath2, pkgName: 'helloworld2', service: 'Greeter2'})
+                    assertServer({protoPath, pkgName: 'fireball.helloworld', service: 'Greeter'}),
+                    assertServer({protoPath: protoPath2, pkgName: 'fireball.helloworld2', service: 'Greeter2'})
                 ])
             );
         });
@@ -119,8 +120,8 @@ describe('GnatGrpc', () => {
         let service;
 
         beforeEach(async () => {
-            const hello_proto = config.grpc.load(protoPath).helloworld;
-            const hello_proto2 = config.grpc.load(protoPath2).helloworld2;
+            const hello_proto = config.grpc.load(protoPath).fireball.helloworld;
+            const hello_proto2 = config.grpc.load(protoPath2).fireball.helloworld2;
             server = new config.grpc.Server();
             server.bind(`0.0.0.0:${PORT}`, config.grpc.ServerCredentials.createInsecure());
             server.addService(
@@ -167,11 +168,11 @@ describe('GnatGrpc', () => {
 
         context('#getService()', () => {
             it('should retrieve a service by `opts`', async () => {
-                expect(client.getService({pkgName: 'helloworld', service: 'Greeter'}))
+                expect(client.getService({pkgName: 'fireball.helloworld', service: 'Greeter'}))
                     .to.equal(service);
             });
             it('should retrieve a service by formatted key', async () => {
-                expect(client.getService('helloworld.Greeter')).to.equal(service);
+                expect(client.getService('fireball.helloworld.Greeter')).to.equal(service);
             });
         });
 
@@ -182,7 +183,7 @@ describe('GnatGrpc', () => {
                     fileLocation: 'local',
                     bindPath: `localhost:${PORT}`,
                     protoPath: protoPath2,
-                    pkgName: 'helloworld2',
+                    pkgName: 'fireball.helloworld2',
                     service: 'Greeter2'
                 });
             });
@@ -235,8 +236,8 @@ describe('GnatGrpc', () => {
 
             it('should create services', () =>
                 Promise.all([
-                    'helloworld.Greeter',
-                    'helloworld2.Greeter2'
+                    'fireball.helloworld.Greeter',
+                    'fireball.helloworld2.Greeter2'
                 ].map(async key => {
                     const service = client.getService(key);
                     const name = random.word();

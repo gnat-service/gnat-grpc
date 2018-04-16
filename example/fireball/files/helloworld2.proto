@@ -16,7 +16,7 @@ syntax = "proto3";
 
 option objc_class_prefix = "HLW";
 
-package helloworld;
+package fireball.helloworld;
 
 // The greeting service definition.
 service Greeter2 {

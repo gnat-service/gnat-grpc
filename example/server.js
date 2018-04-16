@@ -3,7 +3,7 @@
  */
 const {Server, config: ggConf} = require('../');
 const config = require('./config');
-const app = require('./files');
+const app = require('./fireball/files');
 const PATH = require('path');
 const grpc = require('grpc');
 const protobufjs = require('protobufjs');
@@ -45,8 +45,6 @@ app.listen(APP_PORT, async () => {
             {
                 fileLocation: 'local',
                 protoPath: protoPath,
-                pkgName: 'helloworld',
-                service: 'Greeter'
             },
             {sayHello, throwAnErr}
         ),
@@ -54,12 +52,10 @@ app.listen(APP_PORT, async () => {
             {
                 fileLocation: 'local',
                 protoPath: protoPath2,
-                pkgName: 'helloworld',
-                service: 'Greeter2'
             },
             {sayHello}
         ),
-    ]);
+    ]).catch(e => console.error(e.stack));
     server.start();
     console.log(`Server listening on ${PORT}...`);
 });
