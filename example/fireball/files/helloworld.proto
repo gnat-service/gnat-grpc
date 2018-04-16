@@ -19,7 +19,6 @@ option objc_class_prefix = "HLW";
 package helloworld;
 
 import "gender.proto";
-import "google/protobuf/timestamp.proto";
 
 // The greeting service definition.
 service Greeter {
