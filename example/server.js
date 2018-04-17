@@ -37,7 +37,7 @@ const sayHello = async function ({name, gender}) {
     return {message: `Hello ${title}${name}`};
 };
 const throwAnErr = ({name}) => {
-    const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng 死你`);
+    const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
     console.log(err.stack);
     err.code = grpc.status.PERMISSION_DENIED;
     throw err;

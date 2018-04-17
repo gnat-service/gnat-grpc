@@ -23,7 +23,7 @@ const sayHello = ({name}) => {
     return `Hello ${name}`;
 };
 const throwAnErr = ({name}) => {
-    const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng 死你`);
+    const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
     err.code = config.grpc.status.PERMISSION_DENIED;
     throw err;
 };
@@ -213,7 +213,7 @@ describe('GnatGrpc', () => {
                 expect(ret).to.be.an('Undefined');
                 expect(err).to.have.property('code').which.equal(grpc.status.PERMISSION_DENIED);
                 console.log(err.details);
-                expect(err).to.have.property('details').which.equal(`使用了错误的名字 "${name}"，再写错小心 neng 死你`);
+                expect(err).to.have.property('details').which.equal(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
             });
         });
 
