@@ -22,14 +22,14 @@ class GnatGrpc {
     }
 
     static _escapedError (err) {
-        if (err.code > config.errCodeOffset) {
+        if (err.code > config.customErrCodeOffset) {
             err.message = Buffer.from(err.message).toString('base64');
         }
         return err;
     }
 
     static _unescapedError (err) {
-        if (err.code > config.errCodeOffset) {
+        if (err.code > config.customErrCodeOffset) {
             const {details} = err;
             err.details = Buffer.from(details, 'base64').toString('utf-8');
             err.message = err.message.replace(details, err.details);
