@@ -21,6 +21,22 @@ class GnatGrpc {
         return ctr && ctr.name === 'ServiceClient';
     }
 
+    static _escapedError (err) {
+        if (err.code > config.errCodeOffset) {
+            err.message = Buffer.from(err.message).toString('base64');
+        }
+        return err;
+    }
+
+    static _unescapedError (err) {
+        if (err.code > config.errCodeOffset) {
+            const {details} = err;
+            err.details = Buffer.from(details, 'base64').toString('utf-8');
+            err.message = err.message.replace(details, err.details);
+        }
+        return err;
+    }
+
     _retrieveSvc (pkg, opts, pkgName = '') {
         const keys = Object.keys(pkg);
         const o = pkg;
@@ -65,26 +81,7 @@ class GnatGrpc {
             await protobuf.loadFromRemote(opts.protoPath, this.root) :
             config.grpc.load(opts.protoPath);
 
-        const arr = this._retrieveSvc(this.pkg, opts);
-        // const arr = [];
-        // Object.keys(this.pkg).forEach(pkgName => {
-        //     const svcMap = this.pkg[pkgName];
-        //
-        //     Object.keys(svcMap)
-        //         .forEach(name => {
-        //             const Svc = svcMap[name];
-        //             if (!GnatGrpc._isServiceClient(Svc)) {
-        //                 return;
-        //             }
-        //             opts.pkgName = opts.pkgName || pkgName;
-        //             const key = GnatGrpc._getServiceKey({pkgName, service: name});
-        //             checkServiceConflict(this.services, key);
-        //             this.services[key] = Svc;
-        //             arr.push({pkg: pkgName, name, Svc});
-        //         });
-        // });
-
-        return arr;
+        return this._retrieveSvc(this.pkg, opts);
     }
 }
 

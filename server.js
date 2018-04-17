@@ -8,11 +8,6 @@ const utils = require('./utils');
 const {check} = utils;
 const {strOpt: checkStrOpt} = check;
 
-const escapedError = e => {
-    e.message = Buffer.from(e.message).toString('base64');
-    return e;
-};
-
 const methodsHandler = function (methods) {
     const coll = {};
     Object.keys(methods).forEach(name => {
@@ -24,8 +19,7 @@ const methodsHandler = function (methods) {
             try {
                 ret = await o.fn(call.request);
             } catch (e) {
-                err = escapedError(e);
-                console.log('message:', err.message);
+                err = GG._escapedError(e);
             }
             callback(err, ret);
         }
@@ -49,10 +43,6 @@ class Server extends GG {
         this._options = opts;
         this[svcMappingSym] = [];
         this[servicesSym] = {};
-    }
-
-    static _escapedError (...args) {
-        return escapedError(...args);
     }
 
     async _loadProto (opts) {

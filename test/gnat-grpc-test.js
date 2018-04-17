@@ -24,7 +24,7 @@ const sayHello = ({name}) => {
 };
 const throwAnErr = ({name}) => {
     const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
-    err.code = config.grpc.status.PERMISSION_DENIED;
+    err.code = 20000;
     throw err;
 };
 
@@ -128,9 +128,6 @@ describe('GnatGrpc', () => {
                 hello_proto.Greeter.service,
                 {
                     sayHello: (call, callback) => {
-                        if (call.request.name === '1111') {
-                            console.log();
-                        }
                         callback(null, sayHello(call.request));
                     },
                     throwAnErr: (call, callback) => {
@@ -211,7 +208,7 @@ describe('GnatGrpc', () => {
                 }
 
                 expect(ret).to.be.an('Undefined');
-                expect(err).to.have.property('code').which.equal(grpc.status.PERMISSION_DENIED);
+                expect(err).to.have.property('code').which.equal(20000);
                 console.log(err.details);
                 expect(err).to.have.property('details').which.equal(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
             });

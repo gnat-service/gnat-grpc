@@ -39,10 +39,7 @@ class Client extends GG {
                 return new Promise((resolve, reject) => {
                     client[name](...args, (err, res) => {
                         if (err) {
-                            const {details} = err;
-                            err.details = Buffer.from(details, 'base64').toString('utf-8');
-                            err.message = err.message.replace(details, err.details);
-                            reject(err);
+                            reject(GG._unescapedError(err));
                         } else {
                             resolve(res);
                         }
