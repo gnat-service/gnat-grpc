@@ -3,16 +3,22 @@
  */
 const {Server, config: ggConf} = require('../');
 const config = require('./config');
-const app = require('./fireball/files');
+const app = require('./.proto/fireball/files');
 const PATH = require('path');
 const grpc = require('grpc');
 const protobufjs = require('protobufjs');
 
-ggConf({grpc, protobufjs});
+const root = PATH.join(__dirname, '.proto');
 
+ggConf({
+    grpc: require('grpc'),
+    protobufjs: require('protobufjs'),
+    root,
+});
 const {PORT, APP_PORT} = config;
-const protoPath = PATH.resolve(__dirname, config.protoPath);
-const protoPath2 = PATH.resolve(__dirname, config.protoPath2);
+
+const protoPath = PATH.resolve(root, config.protoPath);
+const protoPath2 = PATH.resolve(root, config.protoPath2);
 const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
 
 const sayHello = async function ({name, gender}) {
@@ -31,7 +37,8 @@ const sayHello = async function ({name, gender}) {
     return {message: `Hello ${title}${name}`};
 };
 const throwAnErr = ({name}) => {
-    const err = new Error(`name "${name}" is not correct.`);
+    const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng 死你`);
+    console.log(err.stack);
     err.code = grpc.status.PERMISSION_DENIED;
     throw err;
 };

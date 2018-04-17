@@ -5,15 +5,17 @@ const {Client, config: ggConf} = require('../');
 const config = require('./config');
 const PATH = require('path');
 
+const root = PATH.join(__dirname, '.proto');
+
 ggConf({
     grpc: require('grpc'),
     protobufjs: require('protobufjs'),
-    root: __dirname,
+    root,
 });
 const {PORT, APP_PORT} = config;
 
-const protoPath = PATH.resolve(__dirname, config.protoPath);
-const protoPath2 = PATH.resolve(__dirname, config.protoPath2);
+const protoPath = PATH.resolve(root, config.protoPath);
+const protoPath2 = PATH.resolve(root, config.protoPath2);
 const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
 
 (async () => {
@@ -39,6 +41,10 @@ const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
     try {
         await service.throwAnErr({name: 'WrongName'});
     } catch (e) {
-        console.error('Caught an error:', e);
+        for (let i in e) console.log(i);
+        console.log('stack:', e.stack);
+        console.log('message:', e.message);
+        console.log(e.toString());
+        console.error(e);
     }
 })().catch(e => console.error(e.stack));

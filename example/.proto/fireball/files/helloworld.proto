@@ -18,6 +18,7 @@ option objc_class_prefix = "HLW";
 
 package fireball.helloworld;
 
+import "../../google/protobuf/timestamp.proto";
 import "gender.proto";
 
 // The greeting service definition.
@@ -32,6 +33,7 @@ service Greeter {
 message HelloRequest {
     string name = 1;
     saturn.gender.Gender gender = 2;
+    google.protobuf.Timestamp time = 3;
 }
 
 // The response message containing the greetings
