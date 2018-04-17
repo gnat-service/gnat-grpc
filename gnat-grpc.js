@@ -54,8 +54,7 @@ class GnatGrpc {
             }
 
             if (Svc && typeof Svc === 'object') {
-                pkgName = pkgName ? `${pkgName}.${name}` : name;
-                return arr.push(...this._retrieveSvc(Svc, opts, pkgName));
+                return arr.push(...this._retrieveSvc(Svc, opts, pkgName ? `${pkgName}.${name}` : name));
             }
         });
         return arr;
