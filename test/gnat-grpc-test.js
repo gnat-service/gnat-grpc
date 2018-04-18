@@ -19,9 +19,6 @@ const {grpc} = config;
 let PORT = 50054;
 const protoPath = PATH.resolve(__dirname, './file-server/files/helloworld.proto');
 const protoPath2 = PATH.resolve(__dirname, './file-server/files/helloworld2.proto');
-const sayHello = ({name}) => {
-    return `Hello ${name}`;
-};
 const throwAnErr = ({name}) => {
     const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
     err.code = 20000;
@@ -30,6 +27,9 @@ const throwAnErr = ({name}) => {
 
 describe('GnatGrpc', () => {
     describe('Server', () => {
+        const sayHello = ({name}) => {
+            return {message: `Hello ${name}`, testExField: '1111'};
+        };
         const assertServer = ({protoPath, pkgName, service}) => {
             const hello_proto = get(config.grpc.load(protoPath), pkgName);
             const client = new hello_proto[service](`localhost:${PORT}`, config.grpc.credentials.createInsecure());
@@ -118,6 +118,9 @@ describe('GnatGrpc', () => {
         let server;
         let client;
         let service;
+        const sayHello = ({name}) => {
+            return {message: `Hello ${name}`};
+        };
 
         beforeEach(async () => {
             const hello_proto = config.grpc.load(protoPath).fireball.helloworld;
@@ -204,12 +207,10 @@ describe('GnatGrpc', () => {
                     ret = await service.throwAnErr({name});
                 } catch (e) {
                     err = e;
-                    console.log(e.stack);
                 }
 
                 expect(ret).to.be.an('Undefined');
                 expect(err).to.have.property('code').which.equal(20000);
-                console.log(err.details);
                 expect(err).to.have.property('details').which.equal(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
             });
         });

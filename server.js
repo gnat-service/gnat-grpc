@@ -76,7 +76,10 @@ class Server extends GG {
     static async addServer (configs, methods = configs.methods) {
         const server = new Server(configs);
         const {services} = configs;
-        await Promise.all(services.map(cfg => server._loadProto(cfg)));
+        for (let cfg of services) {
+            await server._loadProto(cfg);
+        }
+        // await Promise.all(services.map(cfg => server._loadProto(cfg)));
 
         methods && Object.keys(methods).forEach(key => server.addMethods(key, methods[key]));
 

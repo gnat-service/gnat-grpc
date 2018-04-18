@@ -92,9 +92,12 @@ class Client extends GG {
 
     static async checkoutServices ({bindPath, services}) {
         const client = new Client();
-        await Promise.all(
-            services.map(opts => client.checkout(Object.assign({bindPath}, opts)))
-        );
+        for (let opts of services) {
+            await client.checkout(Object.assign({bindPath}, opts));
+        }
+        // await Promise.all(
+        //     services.map(opts => client.checkout(Object.assign({bindPath}, opts)))
+        // );
         return client;
     }
 }

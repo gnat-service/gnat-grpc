@@ -20,9 +20,19 @@ const loadFromRemote = async (url, root, httpOpts = {}, options = {}) => {
     return loadFromString(text, root, options);
 };
 
+const loadByVer6 = (filename, root) =>
+    new Promise((resolve, reject) => {
+        config.protobufjs.load(filename, root, (err, res) => {
+            err ? reject(err) : resolve(config.grpc.loadObject(res, {protobufjsVersion: 6}));
+        });
+    });
+
+const loadByVer5 = (...args) => config.grpc.load(...args);
+
 const obj = {
     loadFromString,
-    loadFromRemote
+    loadFromRemote,
+    loadByVer6,
 };
 
 module.exports = obj;

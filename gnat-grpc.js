@@ -53,7 +53,7 @@ class GnatGrpc {
                 return arr.push({pkg: pkgName, name, Svc});
             }
 
-            if (Svc && typeof Svc === 'object') {
+            if (Svc && typeof Svc === 'object' && Svc.constructor.name === 'Object') {
                 return arr.push(...this._retrieveSvc(Svc, opts, pkgName ? `${pkgName}.${name}` : name));
             }
         });
@@ -78,7 +78,7 @@ class GnatGrpc {
 
         this.pkg = opts.fileLocation === 'remote' ?
             await protobuf.loadFromRemote(opts.protoPath, this.root) :
-            config.grpc.load(opts.protoPath);
+            await protobuf.loadByVer6(opts.protoPath);
 
         return this._retrieveSvc(this.pkg, opts);
     }
