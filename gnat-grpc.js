@@ -48,7 +48,13 @@ class GnatGrpc {
             if (GnatGrpc._isServiceClient(Svc)) {
                 opts.pkgName = opts.pkgName || pkgName;
                 const key = GnatGrpc._getServiceKey({pkgName, service: name});
-                checkServiceConflict(this.services, key);
+
+                // 跳过已经注册的服务
+                if (this.services[key]) {
+                    return console.log(`Service ${key} already exists, skipped.`);
+                }
+
+                // checkServiceConflict(this.services, key);
                 this.services[key] = Svc;
                 return arr.push({pkg: pkgName, name, Svc});
             }
@@ -78,7 +84,7 @@ class GnatGrpc {
 
         this.pkg = opts.fileLocation === 'remote' ?
             await protobuf.loadFromRemote(opts.protoPath, this.root) :
-            await protobuf.loadByVer6(opts.protoPath);
+            await protobuf.loadByVer6(opts.protoPath, this.root);
 
         return this._retrieveSvc(this.pkg, opts);
     }

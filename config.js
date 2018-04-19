@@ -2,6 +2,7 @@
  * Created by leaf4monkey on 04/11/2018
  */
 const PATH = require('path');
+const patch = require('./patch');
 
 let _grpc;
 let _protobufjs;
@@ -21,6 +22,8 @@ module.exports = {
         _protobufjs = protobufjs;
         _root = root;
         CUSTOM_ERR_CODE_OFFSET = customErrCodeOffset || CUSTOM_ERR_CODE_OFFSET;
+
+        patch.protobufjs(protobufjs);
     },
     _getPath (filename) {
         return PATH.join(_root, filename);
