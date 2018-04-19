@@ -10,7 +10,7 @@ const {serviceConflict: checkServiceConflict, strOpt: checkStrOpt} = check;
 class GnatGrpc {
     constructor () {
         this.services = {};
-        this.root = new config.protobufjs.Root();
+        // this.root = new config.protobufjs.Root();
     }
 
     static _getServiceKey ({pkgName, service}) {
@@ -83,8 +83,8 @@ class GnatGrpc {
         checkStrOpt(opts, 'service', false);
 
         this.pkg = opts.fileLocation === 'remote' ?
-            await protobuf.loadFromRemote(opts.protoPath, this.root) :
-            await protobuf.loadByVer6(opts.protoPath, this.root);
+            await protobuf.loadFromRemote(opts.protoPath/*, this.root*/) :
+            await protobuf.loadByVer6(opts.protoPath/*, this.root*/);
 
         return this._retrieveSvc(this.pkg, opts);
     }
