@@ -17,26 +17,41 @@ const getConfigured = (o, name) => {
 };
 
 module.exports = {
-    _config: ({grpc, protobufjs, root, customErrCodeOffset, defaultParseOpts}) => {
+    _config: ({
+        grpc,
+        protobufjs,
+        root,
+        customErrCodeOffset,
+        defaultParseOpts,
+        wrapDate = true,
+        wrapBaseType = true,
+        wrappersSet
+    }) => {
         _grpc = grpc;
         _protobufjs = protobufjs;
         _root = root;
         CUSTOM_ERR_CODE_OFFSET = customErrCodeOffset || CUSTOM_ERR_CODE_OFFSET;
 
-        patch.protobufjs(protobufjs);
+        patch.protobufjs(getConfigured(protobufjs, 'protobufjs'));
 
-        [
-            'DoubleValue',
-            'FloatValue',
-            'Int64Value',
-            'UInt64Value',
-            'Int32Value',
-            'UInt32Value',
-            'BoolValue',
-            'StringValue',
-        ].forEach(type => patch.wrapBaseType(protobufjs, type));
-        patch.wrapDate(protobufjs);
+        if (wrapBaseType) {
+            [
+                'DoubleValue',
+                'FloatValue',
+                'Int64Value',
+                'UInt64Value',
+                'Int32Value',
+                'UInt32Value',
+                'BoolValue',
+                'StringValue',
+            ].forEach(type => patch.wrapBaseType(protobufjs, type));
+        }
+        wrapDate && patch.wrapDate(protobufjs);
         patch.setDftParseOpts(protobufjs, defaultParseOpts);
+        wrappersSet = wrappersSet || [];
+        wrappersSet.forEach(({wrappers, fullName}) =>
+            patch.setWrapper(protobufjs, fullName, wrappers)
+        );
     },
     _getPath (filename) {
         return PATH.join(_root, filename);

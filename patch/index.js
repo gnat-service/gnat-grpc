@@ -83,3 +83,13 @@ exports.setDftParseOpts = (protobufjs, opts) => {
     protobufjs.parse.defaults = protobufjs.parse.defaults || {};
     Object.assign(protobufjs.parse.defaults, {keepCase: true}, opts);
 };
+
+exports.setWrapper = (protobufjs, fullName, wrappers) => {
+    if (!wrappers) {
+        throw new TypeError(`Expect an object, got an empty value.`);
+    }
+    if (['fromObject', 'toObject'].some(f => !wrappers[f])) {
+        throw new TypeError(`Expect both \`wrapper.fromObject\` \`wrapper.toObject\` to be functions.`);
+    }
+    protobufjs.wrappers[fullName] = wrappers;
+};
