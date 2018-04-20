@@ -49,7 +49,7 @@ class GnatGrpc {
                 opts.pkgName = opts.pkgName || pkgName;
                 const key = GnatGrpc._getServiceKey({pkgName, service: name});
 
-                // 跳过已经注册的服务
+                // Skip registered services.
                 if (this.services[key]) {
                     return console.log(`Service ${key} already exists, skipped.`);
                 }
@@ -82,9 +82,10 @@ class GnatGrpc {
         checkStrOpt(opts, 'pkgName', false);
         checkStrOpt(opts, 'service', false);
 
+        const root = new config.protobufjs.Root();
         this.pkg = opts.fileLocation === 'remote' ?
-            await protobuf.loadFromRemote(opts.protoPath/*, this.root*/) :
-            await protobuf.loadByVer6(opts.protoPath/*, this.root*/);
+            await protobuf.loadFromRemote(opts.protoPath, root) :
+            await protobuf.loadByVer6(opts.protoPath, root);
 
         return this._retrieveSvc(this.pkg, opts);
     }

@@ -5,6 +5,18 @@ const converter = require('./converter');
 
 const GOOGLE_PROTO_PRIFIX = 'google.protobuf.';
 const getFullTypeName = name => `.${GOOGLE_PROTO_PRIFIX}${name}`;
+const wrappedTypes = [
+    'DoubleValue',
+    'FloatValue',
+    'Int64Value',
+    'UInt64Value',
+    'Int32Value',
+    'UInt32Value',
+    'BoolValue',
+    'StringValue',
+    // 'BytesValue'
+];
+const fullWrappedTypes = wrappedTypes.map(s => getFullTypeName(s));
 
 const floatTypes = ['DoubleValue', 'FloatValue'];
 const intTypes = ['Int64Value', 'UInt64Value', 'Int32Value', 'UInt32Value'];
@@ -12,12 +24,35 @@ const boolType = 'BoolValue';
 
 exports.protobufjs = protobufjs => {
     converter._setProtobufjs(protobufjs);
+    const {util, wrappers, Writer} = protobufjs;
     const {resolvePath} = protobufjs.Root.prototype;
+    const {setup} = protobufjs.Type.prototype;
+
     protobufjs.Root.prototype.resolvePath = function (originPath, includePath, ...args) {
         if (includePath.indexOf('google/protobuf/') === 0) {
             originPath = '';
         }
         return resolvePath.call(this, originPath, includePath, ...args);
+    };
+
+    protobufjs.Type.prototype.setup = function () {
+        setup.apply(this, arguments);
+        const fullName = this.fullName;
+        const types = this._fieldsArray.map(field => field.resolve().resolvedType);
+
+        if (fullWrappedTypes.includes(fullName)) {
+            return this;
+        }
+
+        if (fullName === getFullTypeName('Timestamp')) {
+            return this;
+        }
+
+        this.fromObject = converter.fromObject(this)({
+            types: types,
+            util: util
+        });
+        return this;
     };
 };
 
@@ -29,6 +64,7 @@ exports.wrapBaseType = (protobufjs, type) => {
                 return this.fromObject({value: o});
             }
             if (!o) {
+                // return null;
                 return {value: null};
             }
             return this.fromObject(o);
