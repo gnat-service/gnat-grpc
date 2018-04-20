@@ -78,3 +78,8 @@ exports.wrapDate = protobufjs => {
         }
     }
 };
+
+exports.setDftParseOpts = (protobufjs, opts) => {
+    protobufjs.parse.defaults = protobufjs.parse.defaults || {};
+    Object.assign(protobufjs.parse.defaults, {keepCase: true}, opts);
+};

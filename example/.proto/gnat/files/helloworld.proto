@@ -34,6 +34,7 @@ message HelloRequest {
     string name = 1;
     saturn.gender.Gender gender = 2;
     google.protobuf.Timestamp time = 3;
+    string snake_field = 4;
 }
 
 // The response message containing the greetings

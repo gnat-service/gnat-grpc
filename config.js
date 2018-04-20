@@ -17,7 +17,7 @@ const getConfigured = (o, name) => {
 };
 
 module.exports = {
-    _config: ({grpc, protobufjs, root, customErrCodeOffset}) => {
+    _config: ({grpc, protobufjs, root, customErrCodeOffset, defaultParseOpts}) => {
         _grpc = grpc;
         _protobufjs = protobufjs;
         _root = root;
@@ -36,6 +36,7 @@ module.exports = {
             'StringValue',
         ].forEach(type => patch.wrapBaseType(protobufjs, type));
         patch.wrapDate(protobufjs);
+        patch.setDftParseOpts(protobufjs, defaultParseOpts);
     },
     _getPath (filename) {
         return PATH.join(_root, filename);
