@@ -3,7 +3,7 @@
  */
 const {Server, config: ggConf} = require('../');
 const config = require('./config');
-const app = require('./.proto/fireball/files');
+const app = require('./.proto/gnat/files');
 const PATH = require('path');
 const grpc = require('grpc');
 const protobufjs = require('protobufjs');
@@ -11,8 +11,8 @@ const protobufjs = require('protobufjs');
 const root = PATH.join(__dirname, '.proto');
 
 ggConf({
-    grpc: require('grpc'),
-    protobufjs: require('protobufjs'),
+    grpc,
+    protobufjs,
     root,
 });
 const {PORT, APP_PORT} = config;
@@ -37,7 +37,7 @@ const sayHello = async function ({name, gender}) {
     return {message: `Hello ${title}${name}`};
 };
 const throwAnErr = ({name}) => {
-    const err = new Error(`使用了错误的名字 "${name}"，再写错小心 neng shi 你`);
+    const err = new Error(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
     console.log(err.stack);
     err.code = 20000;
     throw err;

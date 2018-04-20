@@ -32,7 +32,7 @@ const assertProto = (obj, {pkgName, svc, types}) => {
 
 describe('protobuf', () => {
     const protoStr = fs.readFileSync(PATH.resolve(__dirname, './file-server/files/helloworld.proto')).toString();
-    const protoAssertOpts = {pkgName: 'fireball.helloworld', svc: 'Greeter', types: ['HelloRequest', 'HelloReply']};
+    const protoAssertOpts = {pkgName: 'gnat.helloworld', svc: 'Greeter', types: ['HelloRequest', 'HelloReply']};
     describe('.loadFromString()', () => {
         it('should load protobuf object from a ".proto" file', async () => {
             assertProto(protobuf.loadFromString(protoStr), protoAssertOpts)

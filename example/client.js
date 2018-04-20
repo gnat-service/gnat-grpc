@@ -23,7 +23,7 @@ const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
     const service = await client.checkout({
         fileLocation: 'local',
         bindPath: `localhost:${PORT}`,
-        filename: 'fireball/files/helloworld.proto',
+        filename: 'gnat/files/helloworld.proto',
     });
 
     const service2 = await client.checkout({

@@ -73,6 +73,14 @@ class Server extends GG {
         return this.server.start(...args);
     }
 
+    async tryShutdown () {
+        return new Promise((resolve, reject) =>
+            this.server.tryShutdown((err, res) => {
+                err ? reject(err) : resolve(res);
+            })
+        );
+    }
+
     static async addServer (configs, methods = configs.methods) {
         const server = new Server(configs);
         const {services} = configs;

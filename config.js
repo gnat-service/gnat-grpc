@@ -24,6 +24,18 @@ module.exports = {
         CUSTOM_ERR_CODE_OFFSET = customErrCodeOffset || CUSTOM_ERR_CODE_OFFSET;
 
         patch.protobufjs(protobufjs);
+
+        [
+            'DoubleValue',
+            'FloatValue',
+            'Int64Value',
+            'UInt64Value',
+            'Int32Value',
+            'UInt32Value',
+            'BoolValue',
+            'StringValue',
+        ].forEach(type => patch.wrapBaseType(protobufjs, type));
+        patch.wrapDate(protobufjs);
     },
     _getPath (filename) {
         return PATH.join(_root, filename);

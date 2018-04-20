@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+option objc_class_prefix = "HLW";
+
+package gnat.helloworld;
+
+import "gender.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
+// google.protobuf.DoubleValue
+// google.protobuf.FloatValue
+// google.protobuf.Int64Value
+// google.protobuf.UInt64Value
+// google.protobuf.Int32Value
+// google.protobuf.UInt32Value
+// google.protobuf.BoolValue
+// google.protobuf.StringValue
+// google.protobuf.BytesValue
+service WrapperTest {
+    // Sends a greeting
+    rpc ChangeData (Request) returns (Reply) {}
+}
+
+// The request message containing the user's name.
+message Request {
+    string type = 0;
+    google.protobuf.DoubleValue doubleValue = 1;
+    google.protobuf.FloatValue floatValue = 2;
+    google.protobuf.Int64Value int64Value = 3;
+    google.protobuf.UInt64Value uInt64Value = 4;
+    google.protobuf.Int32Value int32Value = 5;
+    google.protobuf.UInt32Value uInt32Value = 6;
+    google.protobuf.BoolValue boolValue = 7;
+    google.protobuf.StringValue stringValue = 8;
+//    google.protobuf.BytesValue bytesValue = 9;
+    google.protobuf.Timestamp timestamp = 10;
+    repeated google.protobuf.DoubleValue doubleValueArr = 11;
+    repeated google.protobuf.FloatValue floatValueArr = 12;
+    repeated google.protobuf.Int64Value int64ValueArr = 13;
+    repeated google.protobuf.UInt64Value uInt64ValueArr = 14;
+    repeated google.protobuf.Int32Value int32ValueArr = 15;
+    repeated google.protobuf.UInt32Value uInt32ValueArr = 16;
+    repeated google.protobuf.BoolValue boolValueArr = 17;
+    repeated google.protobuf.StringValue stringValueArr = 18;
+//    repeated google.protobuf.BytesValue bytesValueArr = 19;
+    repeated google.protobuf.Timestamp timestampArr = 20;
+    map<string, google.protobuf.DoubleValue> doubleValueMap = 21;
+    map<string, google.protobuf.FloatValue> floatValueMap = 22;
+    map<string, google.protobuf.Int64Value> int64ValueMap = 23;
+    map<string, google.protobuf.UInt64Value> uInt64ValueMap = 24;
+    map<string, google.protobuf.Int32Value> int32ValueMap = 25;
+    map<string, google.protobuf.UInt32Value> uInt32ValueMap = 26;
+    map<string, google.protobuf.BoolValue> boolValueMap = 27;
+    map<string, google.protobuf.StringValue> stringValueMap = 28;
+//    map<string, google.protobuf.BytesValue> bytesValueMap = 29;
+    map<string, google.protobuf.Timestamp> timestampMap = 30;
+}
+
+// The response message containing the greetings
+message Reply {
+    string type = 0;
+    google.protobuf.DoubleValue doubleValue = 1;
+    google.protobuf.FloatValue floatValue = 2;
+    google.protobuf.Int64Value int64Value = 3;
+    google.protobuf.UInt64Value uInt64Value = 4;
+    google.protobuf.Int32Value int32Value = 5;
+    google.protobuf.UInt32Value uInt32Value = 6;
+    google.protobuf.BoolValue boolValue = 7;
+    google.protobuf.StringValue stringValue = 8;
+//    google.protobuf.BytesValue bytesValue = 9;
+    google.protobuf.Timestamp timestamp = 10;
+    repeated google.protobuf.DoubleValue doubleValueArr = 11;
+    repeated google.protobuf.FloatValue floatValueArr = 12;
+    repeated google.protobuf.Int64Value int64ValueArr = 13;
+    repeated google.protobuf.UInt64Value uInt64ValueArr = 14;
+    repeated google.protobuf.Int32Value int32ValueArr = 15;
+    repeated google.protobuf.UInt32Value uInt32ValueArr = 16;
+    repeated google.protobuf.BoolValue boolValueArr = 17;
+    repeated google.protobuf.StringValue stringValueArr = 18;
+//    repeated google.protobuf.BytesValue bytesValueArr = 19;
+    repeated google.protobuf.Timestamp timestampArr = 20;
+    map<string, google.protobuf.DoubleValue> doubleValueMap = 21;
+    map<string, google.protobuf.FloatValue> floatValueMap = 22;
+    map<string, google.protobuf.Int64Value> int64ValueMap = 23;
+    map<string, google.protobuf.UInt64Value> uInt64ValueMap = 24;
+    map<string, google.protobuf.Int32Value> int32ValueMap = 25;
+    map<string, google.protobuf.UInt32Value> uInt32ValueMap = 26;
+    map<string, google.protobuf.BoolValue> boolValueMap = 27;
+    map<string, google.protobuf.StringValue> stringValueMap = 28;
+//    map<string, google.protobuf.BytesValue> bytesValueMap = 29;
+    map<string, google.protobuf.Timestamp> timestampMap = 30;
+}

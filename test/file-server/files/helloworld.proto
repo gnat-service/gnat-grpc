@@ -18,7 +18,7 @@ option objc_class_prefix = "HLW";
 
 import "gender.proto";
 
-package fireball.helloworld;
+package gnat.helloworld;
 
 // The greeting service definition.
 service Greeter {
@@ -32,7 +32,7 @@ service Greeter {
 message HelloRequest {
     Position position = 0;
     string name = 1;
-    saturn.gender.Gender gender = 2;
+    gnat.gender.Gender gender = 2;
 }
 
 // The response message containing the greetings
