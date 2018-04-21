@@ -1,0 +1,33 @@
+{
+  "Product": [
+    {"name": "Product1", "size": "BIG"},
+    {"name": "Product2"},
+    {"name": "Product3"},
+    {"name": "Product4"},
+    {"name": "Product5"}
+  ],
+  "User": [
+    {
+      "nickname": null,
+      "gender": "MALE",
+      "position": "DEVELOPER",
+      "addressList": [
+        {"name": "realNameA", "phone": "123456678910", "address": "Guangzhou"},
+        {"name": "realNameA", "phone": "123456678911", "address": "Hangzhou"}
+      ]
+    },
+    {
+      "nickname": "userB",
+      "gender": "MALE",
+      "position": "ADMIN"
+    },
+    {
+      "nickname": "userC",
+      "gender": "FEMALE",
+      "addressList": [
+        {"name": "realNameC", "phone": "323456678910", "address": "Sichuan"},
+        {"name": "realNameC", "address": "Jiangxi"}
+      ]
+    }
+  ]
+}

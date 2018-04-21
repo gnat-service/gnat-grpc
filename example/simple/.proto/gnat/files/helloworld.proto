@@ -18,15 +18,17 @@ option objc_class_prefix = "HLW";
 
 package gnat.helloworld;
 
-import "../../google/protobuf/timestamp.proto";
+import "google/protobuf/timestamp.proto";
 import "gender.proto";
+import "types/empty.proto";
+import "types/replay.proto";
 
 // The greeting service definition.
 service Greeter {
     // Sends a greeting
     rpc SayHello (HelloRequest) returns (HelloReply) {}
 
-    rpc ThrowAnErr (HelloRequest) returns (HelloReply) {}
+    rpc ThrowAnErr (HelloRequest) returns (helloworld.types.HelloReply) {}
 }
 
 // The request message containing the user's name.
@@ -34,7 +36,8 @@ message HelloRequest {
     string name = 1;
     saturn.gender.Gender gender = 2;
     google.protobuf.Timestamp time = 3;
-    string snake_field = 4;
+    map<string, HelloReply> m = 4;
+    bool married = 5;
 }
 
 // The response message containing the greetings

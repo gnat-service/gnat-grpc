@@ -1,7 +1,7 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
-const {Client, config: ggConf} = require('../');
+const {Client, config: ggConf} = require('../../');
 const config = require('./config');
 const PATH = require('path');
 
@@ -33,7 +33,7 @@ const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
     });
 
     const ret = await service.sayHello({name: 'World', gender: 'FEMALE'});
-    const ret2 = await service2.sayHello({name: 'World'});
+    const ret2 = await service2.sayHello({name: null});
 
     console.log('Greeting:', ret);
     console.log('Greeting again:', ret2);

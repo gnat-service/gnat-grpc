@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option objc_class_prefix = "HLW";
+
+package gnat.helloworld.types;
+
+// The response message containing the greetings
+message HelloReply {
+    string message = 1;
+    string title = 2;
+    string tag = 3;
+}

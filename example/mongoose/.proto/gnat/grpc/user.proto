@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package gnat.grpc;
+
+import "address.proto";
+
+message User {
+    string _id = 1;
+    string nickname = 2;
+    repeated Address addressList = 3;
+    Gender gender = 4;
+    Position position = 5;
+}
+
+enum Gender {
+    MALE = 0;
+    FEMALE = 1;
+}
+
+enum Position {
+    ADMIN = 0;
+    DEVELOPER = 1;
+    REPORTER = 2;
+}

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package gnat.grpc;
+
+import "user.proto";
+import "product.proto";
+import "google/protobuf/timestamp.proto";
+
+// The greeting service definition.
+service Order {
+    // Sends a greeting
+    rpc list (EmptyRequest) returns (OrderList) {}
+}
+
+message OrderType {
+    string _id = 1;
+    User user = 2;
+    repeated Product products = 3;
+    int32 amount = 4;
+    google.protobuf.Timestamp createdAt = 5;
+}
+
+message OrderList {
+    repeated OrderType orders = 1;
+}
+
+// The request message containing the user's name.
+message EmptyRequest {
+}

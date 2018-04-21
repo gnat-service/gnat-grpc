@@ -1,7 +1,7 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
-const {Server, config: ggConf} = require('../');
+const {Server, config: ggConf} = require('../../');
 const config = require('./config');
 const app = require('./.proto/gnat/files');
 const PATH = require('path');
