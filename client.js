@@ -32,7 +32,7 @@ class Client extends GG {
 
             container[name] = function (...args) {
                 const len = args.length;
-                const callback = args[args[len - 1]];
+                const callback = args[len - 1];
                 if (len && isFn(callback)) {
                     return client[name](...args);
                 }
