@@ -17,7 +17,7 @@ const methodsHandler = function (methods) {
             let err;
             const o = {fn, call};
             try {
-                ret = await o.fn(call.request);
+                ret = await o.fn(call.request, call);
             } catch (e) {
                 err = GG._escapedError(e);
             }

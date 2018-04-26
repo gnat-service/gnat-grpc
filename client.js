@@ -7,6 +7,7 @@ const utils = require('./utils');
 
 const {check} = utils;
 const {strOpt: checkStrOpt} = check;
+const containerSym = Symbol('container');
 
 const isFn = fn => typeof fn === 'function';
 
@@ -15,9 +16,11 @@ class Client extends GG {
         super();
         this.clients = {};
         this.rawClients = {};
+        this[containerSym] = {};
     }
 
-    _wrapMethods (client, Svc) {
+    _wrapMethods (client, Svc, key) {
+        const self = this;
         const container = {};
         const isRpc = (attrs) =>
             ['path', 'originalName'].every(key => attrs.hasOwnProperty(key));
@@ -32,6 +35,22 @@ class Client extends GG {
 
             container[name] = function (...args) {
                 const len = args.length;
+                if (!len) {
+                    args = [{}];
+                }
+
+                if (args.length < 2 || typeof args[1] !== 'object') {
+                    args.splice(1, 0, self.getMetadata(key));
+                } else {
+                    args[1] = self.getMetadata(key, args[1]);
+                }
+
+                if (args.length < 3 || typeof args[2] !== 'object') {
+                    args.splice(2, 0, self._getCallOpts(key));
+                } else {
+                    args[2] = self._getCallOpts(key, args[2]);
+                }
+
                 const callback = args[len - 1];
                 if (len && isFn(callback)) {
                     return client[name](...args);
@@ -51,7 +70,25 @@ class Client extends GG {
         return container;
     }
 
-    async checkout (opts) {
+    _getCallOpts (key, obj) {
+        return Object.assign({}, this[containerSym][key].callOptions || {}, obj);
+    }
+
+    getMetadata (key, obj) {
+        let metadata;
+        if (obj instanceof config.grpc.Metadata) {
+            [metadata, obj] = [obj, null];
+        } else {
+            metadata = new config.grpc.Metadata()
+        }
+        const ctx = this[containerSym][key];
+        Object.keys(Object.assign({}, ctx.metadata, obj)).forEach(k =>
+            metadata.set(k, obj[k])
+        );
+        return metadata;
+    }
+
+    async checkout (opts, metadata = {}, callOptions) {
         checkStrOpt(opts, 'bindPath');
         if (!opts.credentials) {
             console.warn('`opts.credentials` is not set, an insecure one will be used.');
@@ -64,8 +101,9 @@ class Client extends GG {
             const client = new Svc(opts.bindPath, opts.credentials || config.grpc.credentials.createInsecure());
             this.rawClients[key] = client;
 
-            const wrappedClient = this._wrapMethods(client, Svc);
+            const wrappedClient = this._wrapMethods(client, Svc, key);
             this.clients[key] = wrappedClient;
+            this[containerSym][key] = {rawClient: client, client: wrappedClient, metadata, callOptions};
             return wrappedClient;
         });
 
@@ -90,10 +128,12 @@ class Client extends GG {
         });
     }
 
-    static async checkoutServices ({bindPath, services}) {
+    static async checkoutServices ({bindPath, services, metadata, callOptions}) {
         const client = new Client();
         for (let opts of services) {
-            await client.checkout(Object.assign({bindPath}, opts));
+            const meta = Object.assign({}, metadata, opts.metadata);
+            const callOpts = Object.assign({}, callOptions, opts.callOptions);
+            await client.checkout(Object.assign({bindPath}, opts, meta, callOpts));
         }
         // await Promise.all(
         //     services.map(opts => client.checkout(Object.assign({bindPath}, opts)))

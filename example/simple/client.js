@@ -4,12 +4,14 @@
 const {Client, config: ggConf} = require('../../');
 const config = require('./config');
 const PATH = require('path');
+const grpc = require('grpc');
+const protobufjs = require('protobufjs');
 
 const root = PATH.join(__dirname, '.proto');
 
 ggConf({
-    grpc: require('grpc'),
-    protobufjs: require('protobufjs'),
+    grpc,
+    protobufjs,
     root,
 });
 const {PORT, APP_PORT} = config;
@@ -32,11 +34,15 @@ const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
         protoPath: protoPath2,
     });
 
-    const ret = await service.sayHello({name: 'World', gender: 'FEMALE'});
+    const meta = new grpc.Metadata();
+    meta.set('key', 'value');
+    const ret = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta);
     const ret2 = await service2.sayHello({name: null});
+    const ret3 = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta, {});
 
     console.log('Greeting:', ret);
     console.log('Greeting again:', ret2);
+    console.log('Greeting again:', ret3);
 
     try {
         await service.throwAnErr({name: 'WrongName'});
