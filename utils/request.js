@@ -4,9 +4,9 @@
 
 const request = require('request');
 
-const req = (...args) =>
+const req = (method, ...args) =>
     new Promise((resolve, reject) =>
-        request(...args, (err, res, body) => {
+        request[method](...args, (err, res, body) => {
             if (err) {
                 return reject(err);
             }
@@ -14,6 +14,7 @@ const req = (...args) =>
         })
     );
 
+const methods = {};
 [
     'get',
     'post',
@@ -23,13 +24,13 @@ const req = (...args) =>
     'patch',
     'delete'
 ].forEach(method => {
-    req[method] = (uri, options) => {
+    methods[method] = (uri, options) => {
         options = options || {};
         options.method = method.toUpperCase();
-        return req(uri, options);
+        return req(method, uri, options);
     };
 });
 
-req.del = req.delete;
+methods.del = methods.delete;
 
-module.exports = req;
+module.exports = methods;

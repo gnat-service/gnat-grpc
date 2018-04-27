@@ -3,13 +3,16 @@
  */
 
 const config = require('../config');
-const protobuf = require('../utils/protobuf');
+const loader = require('../utils/loader');
 const request = require('../utils/request');
 const fs = require('fs');
 const PATH = require('path');
 const {expect} = require('chai');
 const sinon = require('sinon');
 const get = require('lodash.get');
+
+const filename = PATH.resolve(__dirname, './file-server/files/helloworld.proto');
+const nonProtoFile = PATH.resolve(__dirname, './file-server/files/example.txt');
 
 config._config({
     grpc: require('grpc'),
@@ -30,12 +33,12 @@ const assertProto = (obj, {pkgName, svc, types}) => {
     );
 };
 
-describe('protobuf', () => {
-    const protoStr = fs.readFileSync(PATH.resolve(__dirname, './file-server/files/helloworld.proto')).toString();
+describe('loader', () => {
+    const protoStr = fs.readFileSync(filename).toString();
     const protoAssertOpts = {pkgName: 'gnat.helloworld', svc: 'Greeter', types: ['HelloRequest', 'HelloReply']};
     describe('.loadFromString()', () => {
-        it('should load protobuf object from a ".proto" file', async () => {
-            assertProto(protobuf.loadFromString(protoStr), protoAssertOpts)
+        it('should load grpc object from a ".proto" file', async () => {
+            assertProto(loader.loadFromString(protoStr), protoAssertOpts)
         });
     });
 
@@ -47,8 +50,23 @@ describe('protobuf', () => {
         afterEach(async () => {
             stub.restore();
         });
-        it('should load protobuf object from a remote ".proto" file', async () => {
-            assertProto(await protobuf.loadFromRemote(), protoAssertOpts)
+        it('should load grpc object from a remote ".proto" file', async () => {
+            assertProto(await loader.loadFromRemote(), protoAssertOpts)
+        });
+    });
+
+    describe('.loadByVer6', () => {
+        it('should load grpc object', async () => {
+            assertProto(await loader.loadByVer6(filename), protoAssertOpts)
+        });
+        it('should be rejected on loading error', async () => {
+            let e;
+            try {
+                await loader.loadByVer6(nonProtoFile);
+            } catch (err) {
+                e = err;
+            }
+            expect(e).to.be.an.instanceOf(Error).with.property('message').which.match(/illegal token 'Hello'/);
         });
     });
 });

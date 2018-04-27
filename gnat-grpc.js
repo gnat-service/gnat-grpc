@@ -4,7 +4,7 @@
 const config = require('./config');
 const utils = require('./utils');
 
-const {protobuf, check} = utils;
+const {loader, check} = utils;
 const {serviceConflict: checkServiceConflict, strOpt: checkStrOpt} = check;
 
 class GnatGrpc {
@@ -21,15 +21,19 @@ class GnatGrpc {
         return ctr && ctr.name === 'ServiceClient';
     }
 
+    static _isCustomErr (err) {
+        return err.code > config.customErrCodeOffset;
+    }
+
     static _escapedError (err) {
-        if (err.code > config.customErrCodeOffset) {
+        if (GnatGrpc._isCustomErr(err)) {
             err.message = Buffer.from(err.message).toString('base64');
         }
         return err;
     }
 
     static _unescapedError (err) {
-        if (err.code > config.customErrCodeOffset) {
+        if (GnatGrpc._isCustomErr(err)) {
             const {details} = err;
             err.details = Buffer.from(details, 'base64').toString('utf-8');
             err.message = err.message.replace(details, err.details);
@@ -84,8 +88,8 @@ class GnatGrpc {
 
         const root = new config.protobufjs.Root();
         this.pkg = opts.fileLocation === 'remote' ?
-            await protobuf.loadFromRemote(opts.protoPath, root) :
-            await protobuf.loadByVer6(opts.protoPath, root);
+            await loader.loadFromRemote(opts.protoPath, root) :
+            await loader.loadByVer6(opts.protoPath, root);
 
         return this._retrieveSvc(this.pkg, opts);
     }

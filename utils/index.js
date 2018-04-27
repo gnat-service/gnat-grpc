@@ -3,7 +3,11 @@
  */
 
 module.exports = {
-    protobuf: require('./protobuf'),
+    /**
+     * @deprecated renamed as `loader`
+     */
+    protobuf: require('./loader'),
+    loader: require('./loader'),
     _request: require('./request'),
     check: require('./check'),
 };

@@ -9,11 +9,17 @@
     "require": [
       "babel-register"
     ],
+    "exclude": ["patch/converter.js"],
+    "reporter": [
+      "lcov",
+      "text-summary",
+      "html"
+    ],
     "sourceMap": false,
     "instrument": false
   },
   "scripts": {
-    "prepublishOnly": "yarn test",
+    "prepublishOnly": "yarn run cov",
     "test": "mocha --recursive ./test",
     "cov": "NODE_ENV=test nyc yarn test"
   },

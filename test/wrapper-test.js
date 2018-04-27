@@ -103,7 +103,10 @@ const getObjMethods = {
     },
 
     mixing () {
+        /* istanbul ignore next */
         const obj = {type: 'mixing'};
+
+        /* istanbul ignore next */
         wrappedTypes.forEach(wrapped => {
             const type = wrappedMap[wrapped];
             const field = camelCase(wrapped);
@@ -120,11 +123,16 @@ const getObjMethods = {
                 undefined: undefined,
             };
         });
+
+        /* istanbul ignore next */
         return obj;
     },
 
     mixingMap () {
+        /* istanbul ignore next */
         const obj = {type: 'mixingMap'};
+
+        /* istanbul ignore next */
         wrappedTypes.forEach(wrapped => {
             const type = wrappedMap[wrapped];
             const field = camelCase(wrapped);
@@ -137,11 +145,16 @@ const getObjMethods = {
                 undefined: undefined,
             };
         });
+
+        /* istanbul ignore next */
         return obj;
     },
 
     mixingArr () {
+        /* istanbul ignore next */
         const obj = {type: 'mixingArr'};
+
+        /* istanbul ignore next */
         wrappedTypes.forEach(wrapped => {
             const type = wrappedMap[wrapped];
             const field = camelCase(wrapped);
@@ -150,6 +163,8 @@ const getObjMethods = {
             obj[field] = getRandomVal();
             obj[`${field}Arr`] = [null, undefined, getVal()];
         });
+
+        /* istanbul ignore next */
         return obj;
     }
 };
@@ -181,6 +196,7 @@ describe('Base types wrapper', () => {
     };
     const nullAssert = (dataType, data) => {
         wrappedTypes.forEach(wrapped => {
+            /* istanbul ignore next */
             if (/Arr$/.test(wrapped)) {
                 expect(data).to.have.property(camelCase(wrapped)).to.be.an('Array').with.length(0);
             } else if (/Map$/.test(wrapped)) {
