@@ -9,19 +9,29 @@ const {check} = utils;
 const {strOpt: checkStrOpt} = check;
 
 const methodsHandler = function (methods) {
+    const {Metadata} = config.grpc;
     const coll = {};
     Object.keys(methods).forEach(name => {
         const fn = methods[name];
         coll[name] = async function (call, callback) {
             let ret;
             let err;
-            const o = {fn, call};
+            const trailer = new Metadata();
+            const setTrailer = obj =>
+                Object.keys(obj).forEach(key => trailer.set(key, obj[key]));
+            let flags;
+            const setFlags = obj => flags = obj;
+            let {request, metadata} = call;
+            if (metadata instanceof Metadata) {
+                metadata = metadata.getMap();
+            }
+            const o = {fn, call, setTrailer, setFlags, metadata, request, context: coll};
             try {
-                ret = await o.fn(call.request, call);
+                ret = await o.fn(request, metadata, {setTrailer, setFlags}, call);
             } catch (e) {
                 err = GG._escapedError(e);
             }
-            callback(err, ret);
+            callback(err, ret, trailer, flags);
         }
     });
 

@@ -56,7 +56,7 @@ class Client extends GG {
                     return client[name](...args);
                 }
                 return new Promise((resolve, reject) => {
-                    client[name](...args, (err, res) => {
+                    client[name](...args, (err, res, ...argus) => {
                         if (err) {
                             reject(GG._unescapedError(err));
                         } else {
@@ -82,7 +82,8 @@ class Client extends GG {
             metadata = new config.grpc.Metadata()
         }
         const ctx = this[containerSym][key];
-        Object.keys(Object.assign({}, ctx.metadata, obj)).forEach(k =>
+        obj = Object.assign({service: key}, ctx.metadata, obj);
+        Object.keys(obj).forEach(k =>
             metadata.set(k, obj[k])
         );
         return metadata;

@@ -22,7 +22,7 @@ const protoPath2 = PATH.resolve(root, config.protoPath2);
 const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
 
 const sayHello = async function ({name, gender}, {metadata}) {
-    console.log(metadata);
+    console.log({metadata});
     let title;
     switch (gender) {
         case 'MALE':
