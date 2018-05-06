@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package saturn.gender;
+package gnat.gender;
 
 enum Gender {
     MALE = 0;
