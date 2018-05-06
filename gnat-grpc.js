@@ -10,6 +10,7 @@ const {serviceConflict: checkServiceConflict, strOpt: checkStrOpt} = check;
 class GnatGrpc {
     constructor () {
         this.services = {};
+        this.roots = [];
         // this.root = new config.protobufjs.Root();
     }
 
@@ -39,6 +40,10 @@ class GnatGrpc {
             err.message = err.message.replace(details, err.details);
         }
         return err;
+    }
+
+    _addRoots (root) {
+      root instanceof config.protobufjs.Root && !this.roots.includes(root) && this.roots.push(root);
     }
 
     _retrieveSvc (pkg, opts, pkgName = '') {
@@ -87,11 +92,12 @@ class GnatGrpc {
         checkStrOpt(opts, 'service', false);
 
         const root = new config.protobufjs.Root();
-        this.pkg = opts.fileLocation === 'remote' ?
+        const pkg = opts.fileLocation === 'remote' ?
             await loader.loadFromRemote(opts.protoPath, root) :
             await loader.loadByVer6(opts.protoPath, root);
 
-        return this._retrieveSvc(this.pkg, opts);
+        this._addRoots(pkg);
+        return this._retrieveSvc(pkg, opts);
     }
 }
 

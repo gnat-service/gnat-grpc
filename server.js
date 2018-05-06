@@ -16,9 +16,11 @@ const methodsHandler = function (methods) {
         coll[name] = async function (call, callback) {
             let ret;
             let err;
-            const trailer = new Metadata();
-            const setTrailer = obj =>
-                Object.keys(obj).forEach(key => trailer.set(key, obj[key]));
+            let trailer;
+            const setTrailer = obj => {
+              trailer = trailer || new Metadata();
+              Object.keys(obj).forEach(key => trailer.set(key, obj[key]));
+            };
             let flags;
             const setFlags = obj => flags = obj;
             let {request, metadata} = call;
