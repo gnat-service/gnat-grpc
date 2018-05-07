@@ -21,7 +21,9 @@ const protoPath = PATH.resolve(root, config.protoPath);
 const protoPath2 = PATH.resolve(root, config.protoPath2);
 const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
 
-const sayHello = async function ({name, gender}, {metadata}) {
+const sayHello = async function (args, metadata) {
+    const {name, gender} = args;
+    console.log(JSON.stringify(args, null, 2));
     console.log({metadata});
     let title;
     switch (gender) {
@@ -48,22 +50,20 @@ app.listen(APP_PORT, async () => {
     const server = new Server({
         bindPath: `0.0.0.0:${PORT}`
     });
-    await Promise.all([
-        server.registerService(
-            {
-                fileLocation: 'local',
-                protoPath: protoPath,
-            },
-            {sayHello, throwAnErr}
-        ),
-        server.registerService(
-            {
-                fileLocation: 'local',
-                protoPath: protoPath2,
-            },
-            {sayHello}
-        ),
-    ]).catch(e => console.error(e.stack));
+    await server.registerService(
+      {
+        fileLocation: 'local',
+        protoPath: protoPath,
+      },
+      {sayHello, throwAnErr}
+    );
+    await server.registerService(
+      {
+        fileLocation: 'local',
+        protoPath: protoPath2,
+      },
+      {sayHello}
+    );
     server.start();
     console.log(`Server listening on ${PORT}...`);
 });

@@ -40,11 +40,7 @@ exports.protobufjs = protobufjs => {
         const fullName = this.fullName;
         const types = this._fieldsArray.map(field => field.resolve().resolvedType);
 
-        if (fullWrappedTypes.includes(fullName)) {
-            return this;
-        }
-
-        if (fullName === getFullTypeName('Timestamp')) {
+        if (wrappers[fullName]) {
             return this;
         }
 

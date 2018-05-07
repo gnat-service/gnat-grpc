@@ -10,7 +10,7 @@ const {serviceConflict: checkServiceConflict, strOpt: checkStrOpt} = check;
 class GnatGrpc {
     constructor () {
         this.services = {};
-        this.roots = [];
+        this.roots = {};
         // this.root = new config.protobufjs.Root();
     }
 
@@ -42,17 +42,12 @@ class GnatGrpc {
         return err;
     }
 
-    _addRoots (root) {
-      root instanceof config.protobufjs.Root && !this.roots.includes(root) && this.roots.push(root);
-    }
-
-    _retrieveSvc (pkg, opts, pkgName = '') {
-        const keys = Object.keys(pkg);
-        const o = pkg;
+    _retrieveSvc (root, parent, opts, pkgName = '') {
+        const keys = Object.keys(parent);
 
         const arr = [];
         keys.forEach(name => {
-            const Svc = o[name];
+            const Svc = parent[name];
 
             if (GnatGrpc._isServiceClient(Svc)) {
                 opts.pkgName = opts.pkgName || pkgName;
@@ -65,11 +60,12 @@ class GnatGrpc {
 
                 // checkServiceConflict(this.services, key);
                 this.services[key] = Svc;
+                this.roots[key] = root;
                 return arr.push({pkg: pkgName, name, Svc});
             }
 
             if (Svc && typeof Svc === 'object' && Svc.constructor.name === 'Object') {
-                return arr.push(...this._retrieveSvc(Svc, opts, pkgName ? `${pkgName}.${name}` : name));
+                return arr.push(...this._retrieveSvc(root, Svc, opts, pkgName ? `${pkgName}.${name}` : name));
             }
         });
         return arr;
@@ -96,8 +92,7 @@ class GnatGrpc {
             await loader.loadFromRemote(opts.protoPath, root) :
             await loader.loadByVer6(opts.protoPath, root);
 
-        this._addRoots(pkg);
-        return this._retrieveSvc(pkg, opts);
+        return this._retrieveSvc(root, pkg, opts);
     }
 }
 
