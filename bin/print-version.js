@@ -1,3 +1,3 @@
 const {version} = require('../package.json');
 
-console.log(`TAG=${version}`);
+console.log(version);
