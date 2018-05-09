@@ -1,6 +1,6 @@
 {
   "name": "gnat-grpc",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "A simple grpc sync wrapper.",
   "main": "index.js",
   "author": "leaf4monkey <joc98@163.com>",
@@ -10,7 +10,8 @@
       "babel-register"
     ],
     "exclude": [
-      "patch/converter.js"
+      "patch/converter.js",
+      "test/*"
     ],
     "reporter": [
       "lcov",
@@ -23,7 +24,7 @@
   "scripts": {
     "prepublishOnly": "yarn run cov",
     "test": "mocha --recursive ./test",
-    "cov": "NODE_ENV=test nyc yarn test"
+    "cov": "NODE_ENV=test nyc npm test"
   },
   "dependencies": {
     "request": "^2.85.0"
