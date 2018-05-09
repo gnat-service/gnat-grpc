@@ -23,7 +23,8 @@
   },
   "scripts": {
     "prepublishOnly": "yarn run cov",
-    "test": "mocha --recursive ./test",
+    "postpublish": "sh ./bin/add-tag.sh",
+    "test": "mocha --color --recursive ./test",
     "cov": "NODE_ENV=test nyc npm test"
   },
   "dependencies": {
