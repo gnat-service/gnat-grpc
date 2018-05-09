@@ -29,12 +29,19 @@ const loadFromRemote = async (url, root, httpOpts = {}, options = {}) => {
     return loadFromString(text, root, options);
 };
 
+const grpcLoadVer6 = root => config.grpc.loadObject(root, {protobufjsVersion: 6});
+
 const loadByVer6 = (filename, root) =>
     new Promise((resolve, reject) => {
         config.protobufjs.load(filename, root, (err, res) => {
-            err ? reject(err) : resolve(config.grpc.loadObject(res, {protobufjsVersion: 6}));
+            err ? reject(err) : resolve(grpcLoadVer6(res));
         });
     });
+
+const loadByVer6Sync = (filename, root) => {
+    const ret = config.protobufjs.loadSync(filename, root);
+    return grpcLoadVer6(ret);
+};
 
 // const loadByVer5 = (...args) => config.grpc.load(...args);
 
@@ -42,6 +49,7 @@ const obj = {
     loadFromString,
     loadFromRemote,
     loadByVer6,
+    loadByVer6Sync
 };
 
 module.exports = obj;

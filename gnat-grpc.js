@@ -7,6 +7,25 @@ const utils = require('./utils');
 const {loader, check} = utils;
 const {serviceConflict: checkServiceConflict, strOpt: checkStrOpt} = check;
 
+const optsHandler = (opts, cb) => {
+    opts = Object.assign(
+        {fileLocation: 'local'},
+        opts
+    );
+
+    if (opts.filename) {
+        opts.protoPath = config._getPath(opts.filename);
+    }
+
+    checkStrOpt(opts, 'fileLocation');
+    checkStrOpt(opts, 'protoPath');
+    checkStrOpt(opts, 'filename', false);
+    checkStrOpt(opts, 'pkgName', false);
+    checkStrOpt(opts, 'service', false);
+
+    return opts;
+};
+
 class GnatGrpc {
     constructor () {
         this.services = {};
@@ -72,25 +91,19 @@ class GnatGrpc {
     }
 
     async _loadProto (opts) {
-        opts = Object.assign(
-            {fileLocation: 'local'},
-            opts
-        );
-
-        if (opts.filename) {
-            opts.protoPath = config._getPath(opts.filename);
-        }
-
-        checkStrOpt(opts, 'fileLocation');
-        checkStrOpt(opts, 'protoPath');
-        checkStrOpt(opts, 'filename', false);
-        checkStrOpt(opts, 'pkgName', false);
-        checkStrOpt(opts, 'service', false);
-
+        opts = optsHandler(opts);
         const root = new config.protobufjs.Root();
         const pkg = opts.fileLocation === 'remote' ?
             await loader.loadFromRemote(opts.protoPath, root) :
             await loader.loadByVer6(opts.protoPath, root);
+
+        return this._retrieveSvc(root, pkg, opts);
+    }
+
+    _loadProtoSync (opts) {
+        opts = optsHandler(opts);
+        const root = new config.protobufjs.Root();
+        const pkg = loader.loadByVer6Sync(opts.protoPath, root);
 
         return this._retrieveSvc(root, pkg, opts);
     }

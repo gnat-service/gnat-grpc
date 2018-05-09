@@ -40,6 +40,10 @@ const methodsHandler = function (methods) {
     return coll;
 };
 
+const loadMethods = (server, methods) => {
+    methods && Object.keys(methods).forEach(key => server.addMethods(key, methods[key]));
+};
+
 const svcMappingSym = Symbol('serviceMapping');
 const servicesSym = Symbol('services');
 
@@ -57,8 +61,7 @@ class Server extends GG {
         this[servicesSym] = {};
     }
 
-    async _loadProto (opts) {
-        const svcMapping = await super._loadProto(opts);
+    _svcMappingHandler (svcMapping) {
         return svcMapping.map(({pkg, name, Svc}) => {
             const key = GG._getServiceKey({pkgName: pkg, service: name});
             const obj = {service: Svc.service, key};
@@ -66,6 +69,18 @@ class Server extends GG {
             this[servicesSym][key] = Svc.service;
             return obj;
         });
+    }
+
+    async _loadProto (opts) {
+        return this._svcMappingHandler(
+            await super._loadProto(opts)
+        );
+    }
+
+    _loadProtoSync (opts) {
+        return this._svcMappingHandler(
+            super._loadProtoSync(opts)
+        );
     }
 
     addMethods (key, methods) {
@@ -76,6 +91,11 @@ class Server extends GG {
 
     async registerService (opts, methods) {
         const mapping = await this._loadProto(opts);
+        mapping.map(({key}) => this.addMethods(key, methods));
+    }
+
+    registerServiceSync (opts, methods) {
+        const mapping = this._loadProtoSync(opts);
         mapping.map(({key}) => this.addMethods(key, methods));
     }
 
@@ -95,13 +115,18 @@ class Server extends GG {
 
     static async addServer (configs, methods = configs.methods) {
         const server = new Server(configs);
-        const {services} = configs;
-        for (let cfg of services) {
+        for (let cfg of configs.services) {
             await server._loadProto(cfg);
         }
-        // await Promise.all(services.map(cfg => server._loadProto(cfg)));
+        loadMethods(server, methods);
 
-        methods && Object.keys(methods).forEach(key => server.addMethods(key, methods[key]));
+        return server;
+    }
+
+    static addServerSync (configs, methods = configs.methods) {
+        const server = new Server(configs);
+        configs.services.forEach(cfg => server._loadProtoSync(cfg));
+        loadMethods(server, methods);
 
         return server;
     }

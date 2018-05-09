@@ -120,6 +120,35 @@ describe('GnatGrpc', () => {
                 ])
             );
         });
+
+        context('.addServerSync()', () => {
+            let server;
+
+            beforeEach(() => {
+                server = Server.addServerSync({
+                    bindPath: `0.0.0.0:${PORT}`,
+                    services: [
+                        {filename: 'helloworld.proto'},
+                        {filename: 'helloworld2.proto'},
+                    ],
+                    methods: {
+                        'gnat.helloworld.Greeter': {sayHello},
+                        'gnat.helloworld2.Greeter2': {sayHello},
+                    }
+                });
+                server.start();
+            });
+
+            afterEach(done => server.server.tryShutdown(done));
+
+            it('should add multi services', () =>
+                Promise.all([
+                    assertServer({protoPath, pkgName: 'gnat.helloworld', service: 'Greeter'}),
+                    assertServer({protoPath: protoPath2, pkgName: 'gnat.helloworld2', service: 'Greeter2'})
+                ])
+            );
+        });
+
         describe('Service', () => {
             let server;
             let client;
@@ -304,6 +333,37 @@ describe('GnatGrpc', () => {
             let client;
             beforeEach(async () => {
                 client = await Client.checkoutServices({
+                    bindPath: `localhost:${PORT}`,
+                    services: [
+                        {
+                            // Cover the parent level `bindPath`.
+                            // bindPath: `localhost:${PORT}`,
+                            filename: 'helloworld.proto'
+                        },
+                        {filename: 'helloworld2.proto'},
+                    ]
+                });
+            });
+
+            afterEach(() => client.close());
+
+            it('should create services', () =>
+                Promise.all([
+                    'gnat.helloworld.Greeter',
+                    'gnat.helloworld2.Greeter2'
+                ].map(async key => {
+                    const service = client.getService(key);
+                    const name = random.word();
+                    const ret = await service.sayHello({name});
+                    expect(ret).to.have.property('message').which.equal(`Hello ${name}`);
+                }))
+            );
+        });
+
+        context('.checkoutServicesSync()', () => {
+            let client;
+            beforeEach(() => {
+                client = Client.checkoutServicesSync({
                     bindPath: `localhost:${PORT}`,
                     services: [
                         {

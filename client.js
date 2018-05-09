@@ -11,6 +11,13 @@ const containerSym = Symbol('container');
 
 const isFn = fn => typeof fn === 'function';
 
+const checkoutOptsChecker = opts => {
+    checkStrOpt(opts, 'bindPath');
+    if (!opts.credentials) {
+        console.warn('`opts.credentials` is not set, an insecure one will be used.');
+    }
+};
+
 class Client extends GG {
     constructor () {
         super();
@@ -89,14 +96,7 @@ class Client extends GG {
         return metadata;
     }
 
-    async checkout (opts, metadata = {}, callOptions) {
-        checkStrOpt(opts, 'bindPath');
-        if (!opts.credentials) {
-            console.warn('`opts.credentials` is not set, an insecure one will be used.');
-        }
-
-        const svcMapping = await this._loadProto(opts);
-
+    _checkout (opts, metadata, callOptions, svcMapping) {
         const arr = svcMapping.map(({pkg, name, Svc}) => {
             const key = GG._getServiceKey({pkgName: pkg, service: name});
             const client = new Svc(opts.bindPath, opts.credentials || config.grpc.credentials.createInsecure());
@@ -113,6 +113,18 @@ class Client extends GG {
         }
 
         return arr;
+    }
+
+    checkoutSync (opts, metadata = {}, callOptions) {
+        checkoutOptsChecker(opts);
+        const svcMapping = this._loadProtoSync(opts);
+        return this._checkout(opts, metadata, callOptions, svcMapping);
+    }
+
+    async checkout (opts, metadata = {}, callOptions) {
+        checkoutOptsChecker(opts);
+        const svcMapping = await this._loadProto(opts);
+        return this._checkout(opts, metadata, callOptions, svcMapping);
     }
 
     getService (opts) {
@@ -139,6 +151,16 @@ class Client extends GG {
         // await Promise.all(
         //     services.map(opts => client.checkout(Object.assign({bindPath}, opts)))
         // );
+        return client;
+    }
+
+    static checkoutServicesSync ({bindPath, services, metadata, callOptions}) {
+        const client = new Client();
+        for (let opts of services) {
+            const meta = Object.assign({}, metadata, opts.metadata);
+            const callOpts = Object.assign({}, callOptions, opts.callOptions);
+            client.checkoutSync(Object.assign({bindPath}, opts, meta, callOpts));
+        }
         return client;
     }
 }
