@@ -20,6 +20,7 @@ const methodsHandler = function (methods) {
             const setTrailer = obj => {
               trailer = trailer || new Metadata();
               Object.keys(obj).forEach(key => trailer.set(key, obj[key]));
+              return trailer;
             };
             let flags;
             const setFlags = obj => flags = obj;
@@ -38,10 +39,6 @@ const methodsHandler = function (methods) {
     });
 
     return coll;
-};
-
-const loadMethods = (server, methods) => {
-    methods && Object.keys(methods).forEach(key => server.addMethods(key, methods[key]));
 };
 
 const svcMappingSym = Symbol('serviceMapping');
@@ -113,12 +110,16 @@ class Server extends GG {
         );
     }
 
+    loadMethodsTree (methods) {
+        methods && Object.keys(methods).forEach(key => this.addMethods(key, methods[key]));
+    }
+
     static async addServer (configs, methods = configs.methods) {
         const server = new Server(configs);
         for (let cfg of configs.services) {
             await server._loadProto(cfg);
         }
-        loadMethods(server, methods);
+        server.loadMethodsTree(methods);
 
         return server;
     }
@@ -126,7 +127,7 @@ class Server extends GG {
     static addServerSync (configs, methods = configs.methods) {
         const server = new Server(configs);
         configs.services.forEach(cfg => server._loadProtoSync(cfg));
-        loadMethods(server, methods);
+        server.loadMethodsTree(methods);
 
         return server;
     }
