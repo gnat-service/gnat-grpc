@@ -18,9 +18,13 @@ const methodsHandler = function (methods) {
             let err;
             let trailer;
             const setTrailer = obj => {
-              trailer = trailer || new Metadata();
-              Object.keys(obj).forEach(key => trailer.set(key, obj[key]));
-              return trailer;
+                if (obj instanceof Metadata) {
+                    trailer = obj;
+                    return obj;
+                }
+                trailer = trailer || new Metadata();
+                Object.keys(obj).forEach(key => trailer.set(key, obj[key]));
+                return trailer;
             };
             let flags;
             const setFlags = obj => flags = obj;
