@@ -28,6 +28,7 @@
     "cov": "NODE_ENV=test nyc npm test"
   },
   "dependencies": {
+    "lodash.clone": "^4.5.0",
     "request": "^2.85.0"
   },
   "devDependencies": {

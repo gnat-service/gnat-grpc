@@ -4,35 +4,42 @@
 const PATH = require('path');
 const patch = require('./patch');
 
-let _grpc;
-let _protobufjs;
-let _root;
-let CUSTOM_ERR_CODE_OFFSET = 100;
+const cache = {
+    grpc: null,
+    protobufjs: null,
+    root: null,
+    CUSTOM_ERR_CODE_OFFSET: 100,
+};
 
-const getConfigured = (o, name) => {
+const getConfigured = name => {
+    const o = cache[name];
     if (!o) {
-        throw new Error(`Module ${name} is not configured yet.`);
+        throw new Error(`\`${name}\` is not configured yet.`);
     }
     return o;
 };
 
 module.exports = {
-    _config: ({
-        grpc,
-        protobufjs,
-        root,
-        customErrCodeOffset,
-        defaultParseOpts,
-        wrapDate = true,
-        wrapBaseType = true,
-        wrappersSet
-    }) => {
-        _grpc = grpc;
-        _protobufjs = protobufjs;
-        _root = root;
-        CUSTOM_ERR_CODE_OFFSET = customErrCodeOffset || CUSTOM_ERR_CODE_OFFSET;
+    _config: (configuration = {}) => {
+        const {
+            defaultParseOpts,
+            wrapDate = true,
+            wrapBaseType = true,
+            wrappersSet,
+            transformsSet
+        } = configuration;
 
-        patch.protobufjs(getConfigured(protobufjs, 'protobufjs'));
+        Object.keys(cache).forEach(key => {
+            if (!configuration.hasOwnProperty(key)) {
+                return;
+            }
+            cache[key] = configuration[key] || cache[key];
+        });
+        cache.CUSTOM_ERR_CODE_OFFSET = cache.CUSTOM_ERR_CODE_OFFSET || configuration.customErrCodeOffset;
+
+        const protobufjs = getConfigured('protobufjs');
+
+        patch.protobufjs(protobufjs);
 
         if (wrapBaseType) {
             [
@@ -44,28 +51,30 @@ module.exports = {
                 'UInt32Value',
                 'BoolValue',
                 'StringValue',
-            ].forEach(type => patch.wrapBaseType(protobufjs, type));
+            ].forEach(patch.wrapBaseType);
         }
-        wrapDate && patch.wrapDate(protobufjs);
+        wrapDate && patch.wrapDate();
         patch.setDftParseOpts(protobufjs, defaultParseOpts);
-        wrappersSet = wrappersSet || [];
-        wrappersSet.forEach(({wrappers, fullName}) =>
+        (wrappersSet || []).forEach(({wrappers, fullName}) =>
             patch.setWrapper(protobufjs, fullName, wrappers)
+        );
+        (transformsSet || []).forEach(({transforms, fullName}) =>
+            patch.setTransform(fullName, transforms)
         );
     },
     _getPath (filename) {
-        return PATH.join(_root, filename);
+        return PATH.join(getConfigured('root'), filename);
     },
     get grpc () {
-        return getConfigured(_grpc, 'grpc');
+        return getConfigured('grpc');
     },
     get protobufjs () {
-        return getConfigured(_protobufjs, 'protobufjs');
+        return getConfigured('protobufjs');
     },
     get root () {
-        return getConfigured(_root, 'root');
+        return getConfigured('root');
     },
     get customErrCodeOffset () {
-        return CUSTOM_ERR_CODE_OFFSET;
+        return getConfigured('CUSTOM_ERR_CODE_OFFSET');
     }
 };

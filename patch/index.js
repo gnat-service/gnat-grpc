@@ -1,10 +1,8 @@
-/**
- * Created by leaf4monkey on 04/19/2018
- */
-const converter = require('./converter');
+const clone = require('lodash.clone');
 
 const GOOGLE_PROTO_PRIFIX = 'google.protobuf.';
-const getFullTypeName = name => `.${GOOGLE_PROTO_PRIFIX}${name}`;
+const getFullTypeVal = name => `${GOOGLE_PROTO_PRIFIX}${name}`;
+const getFullTypeName = name => `.${getFullTypeVal(name)}`;
 const wrappedTypes = [
     'DoubleValue',
     'FloatValue',
@@ -16,15 +14,73 @@ const wrappedTypes = [
     'StringValue',
     // 'BytesValue'
 ];
-const fullWrappedTypes = wrappedTypes.map(s => getFullTypeName(s));
+const transforms = {};
 
-const floatTypes = ['DoubleValue', 'FloatValue'];
-const intTypes = ['Int64Value', 'UInt64Value', 'Int32Value', 'UInt32Value'];
-const boolType = 'BoolValue';
+const floatTypes = ['DoubleValue', 'FloatValue'].map(getFullTypeVal);
+const intTypes = ['Int64Value', 'UInt64Value', 'Int32Value', 'UInt32Value'].map(getFullTypeVal);
+const boolTypes = ['BoolValue'].map(getFullTypeVal);
+
+const isFloat = type => floatTypes.includes(type);
+const isInt = type => intTypes.includes(type);
+const isBool = type => boolTypes.includes(type);
+
+const parseByType = (val, type) => {
+    if (val === null) {
+        return val;
+    }
+    if (isFloat(type)) {
+        return parseFloat(val);
+    }
+    if (isInt(type)) {
+        return parseInt(val, 10);
+    }
+    if (isBool(type)) {
+        return !!val;
+    }
+    return val;
+};
+
+const wrap = (self, methodName, hook) => {
+    const fn = self[methodName];
+    if (fn._transformWrapped) {
+        return;
+    }
+
+    const transform = (d, typeMapping, args) => {
+        typeMapping.forEach(({name, resolvedType, field}) => {
+            if (!resolvedType) {
+                return;
+            }
+            const {fullName} = resolvedType;
+            if (transforms[fullName]) {
+                d[name] = transforms[fullName][methodName].call(field, d[name], ...args);
+            }
+        });
+        return d;
+    };
+
+    self[methodName] = function (d, ...args) {
+        const typeMapping = this._fieldsArray.map(field => {
+            const {resolvedType} = field.resolve();
+            return {name: field.name, resolvedType, field};
+        });
+        if (!d) {
+            return fn.call(this, d, ...args);
+        }
+
+        if (hook === 'pre') {
+            d = transform(clone(d), typeMapping, args);
+        }
+        const r = fn.call(this, d, ...args);
+        if (hook === 'post') {
+            return transform(r, typeMapping, args);
+        }
+        return r;
+    };
+    self[methodName]._transformWrapped = true;
+};
 
 exports.protobufjs = protobufjs => {
-    converter._setProtobufjs(protobufjs);
-    const {util, wrappers, Writer} = protobufjs;
     const {resolvePath} = protobufjs.Root.prototype;
     const {setup} = protobufjs.Type.prototype;
 
@@ -37,83 +93,135 @@ exports.protobufjs = protobufjs => {
 
     protobufjs.Type.prototype.setup = function () {
         setup.apply(this, arguments);
-        const fullName = this.fullName;
-        const types = this._fieldsArray.map(field => field.resolve().resolvedType);
-
-        if (wrappers[fullName]) {
-            return this;
-        }
-
-        this.fromObject = converter.fromObject(this)({
-            types: types,
-            util: util
-        });
+        wrap(this, 'fromObject', 'pre');
+        wrap(this, 'toObject', 'post');
         return this;
     };
 };
 
-exports.wrapBaseType = (protobufjs, type) => {
-    protobufjs.wrappers[getFullTypeName(type)] = {
+const wrapTransform = (ctx, method, fullName, fn, o, ...args) => {
+    if (ctx.repeated) {
+        if (!o) {
+            return o;
+        }
+        if (Array.isArray(o)) {
+            return o.map(el => fn(el, ...args));
+        }
+    }
+
+    if (ctx.map) {
+        if (!o) {
+            return;
+        }
+        const oo = {};
+        Object.keys(o).forEach((k) => {
+            oo[k] = fn(o[k], ...args);
+        });
+        return oo;
+    }
+
+    return fn(o, ...args);
+};
+
+const wrapFromObjTrans = (ctx, ...args) => wrapTransform(ctx, 'fromObject', ...args);
+const wrapToObjTrans = (ctx, ...args) => wrapTransform(ctx, 'toObject', ...args);
+
+exports.wrapBaseType = type => {
+    const fullName = getFullTypeName(type);
+    transforms[fullName] = {
         fromObject (o) {
-            const t = typeof o;
-            if (['number', 'string', 'boolean'].includes(t)) {
-                return this.fromObject({value: o});
-            }
-            if (!o) {
-                // return null;
-                return {value: null};
-            }
-            return this.fromObject(o);
+            const fn = o => {
+                const t = typeof o;
+                if (['number', 'string', 'boolean'].includes(t)) {
+                    return {value: o};
+                }
+
+                return o;
+            };
+
+            return wrapFromObjTrans(this, fullName, fn, o);
         },
-        toObject (m/*, o*/) {
-            if (!m && m !== false) {
-                return m;
-            }
-            const name = m.constructor.name;
-            if (floatTypes.includes(name)) {
-                return parseFloat(m.value);
-            }
-            if (intTypes.includes(name)) {
-                return parseInt(m.value, 10);
-            }
-            return m.value;
+        toObject (m) {
+            const fn = m => {
+                const t = typeof m;
+                if (['number', 'string', 'boolean'].includes(t)) {
+                    return parseByType(m, this.type);
+                }
+                if (!m) {
+                    return m;
+                }
+
+                return parseByType(m.value, this.type);
+            };
+
+            return wrapToObjTrans(this, fullName, fn, m);
         }
     };
 };
 
-exports.wrapDate = protobufjs => {
-    protobufjs.wrappers[getFullTypeName('Timestamp')] = {
+exports.wrapDate = () => {
+    const fullName = getFullTypeName('Timestamp');
+    transforms[fullName] = {
         fromObject (o) {
-            if (!o && o !== 0) {
-                return {};
-            }
-            if (['seconds', 'nanos'].some(key => typeof o[key] === 'number')) {
-                return this.fromObject(o);
-            }
-            const d = new Date(o);
-            const millis = d.getTime();
-            const nanos = millis % 1000;
-            const seconds = (millis - nanos) / 1000;
-            return {seconds, nanos};
-        },
-        toObject (m, o) {
-            o = o || {};
-            if (!m) {
-                return m;
-            }
-            if (!m.seconds && m.seconds !== 0 && typeof m.nanos !== 'number') {
-                return null;
-            }
+            const fn = o => {
+                if (!o && o !== 0) {
+                    return null;
+                }
 
-            const seconds = parseInt(m.seconds || 0, 10);
-            return new Date(seconds * 1000 + (m.nanos || 0));
+                if (['seconds', 'nanos'].some(key => typeof o[key] === 'number')) {
+                    return o;
+                }
+
+                const millis = new Date(o).getTime();
+                if (isNaN(millis)) {
+                    throw new Error(`\`${o}\` cannot be parsed by \`Date.parse()\``);
+                }
+
+                const nanos = millis % 1000;
+                const seconds = (millis - nanos) / 1000;
+                return {seconds, nanos};
+            };
+
+            return wrapFromObjTrans(this, fullName, fn, o);
+        },
+
+        toObject (m) {
+            const fn = m => {
+                if (!m) {
+                    return m;
+                }
+
+                if (m instanceof Date) {
+                    return m;
+                }
+
+                if (!m.seconds && m.seconds !== 0 && typeof m.nanos !== 'number') {
+                    return null;
+                }
+
+                const seconds = parseInt(m.seconds || 0, 10);
+                const nanos = parseInt(m.nanos || 0, 10);
+                return new Date(seconds * 1000 + nanos);
+            };
+
+            return wrapToObjTrans(this, fullName, fn, m);
         }
-    }
+    };
 };
 
 exports.setDftParseOpts = (protobufjs, opts) => {
     protobufjs.parse.defaults = protobufjs.parse.defaults || {};
     Object.assign(protobufjs.parse.defaults, {keepCase: true}, opts);
+};
+
+exports.setTransform = (fullName, trans) => {
+    if (!trans) {
+        throw new TypeError(`Expect an object, got an empty value.`);
+    }
+    if (['fromObject', 'toObject'].some(f => !trans[f])) {
+        throw new TypeError(`Expect both \`transform.fromObject\` \`transform.toObject\` to be functions.`);
+    }
+    transforms[fullName] = trans;
 };
 
 exports.setWrapper = (protobufjs, fullName, wrappers) => {

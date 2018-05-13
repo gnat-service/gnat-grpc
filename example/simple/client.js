@@ -36,7 +36,18 @@ const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
 
     const meta = new grpc.Metadata();
     meta.set('key', 'value');
-    const ret = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta);
+    const ret = await service.sayHello(
+        {
+            m: {reply: {message: '11'}},
+            name: 'World',
+            gender: 'FEMALE',
+            strArr: ['1', '2'],
+            strValArr: ['1', '2'],
+            boolVal: false,
+            time: '2018-05-12'
+        },
+        meta
+    );
     const ret2 = await service2.sayHello({name: null});
     const ret3 = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta, {});
 

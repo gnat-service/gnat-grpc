@@ -19,6 +19,7 @@ option objc_class_prefix = "HLW";
 package gnat.helloworld;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 import "gender.proto";
 import "types/empty.proto";
 import "types/replay.proto";
@@ -38,6 +39,9 @@ message HelloRequest {
     google.protobuf.Timestamp time = 3;
     map<string, HelloReply> m = 4;
     bool married = 5;
+    repeated google.protobuf.StringValue strValArr = 6;
+    repeated string strArr = 7;
+    google.protobuf.BoolValue boolVal = 8;
 }
 
 // The response message containing the greetings
