@@ -4,22 +4,14 @@
 const {Server, config: ggConf} = require('../../');
 const config = require('./config');
 const app = require('./.proto/gnat/files');
-const PATH = require('path');
 const grpc = require('grpc');
 const protobufjs = require('protobufjs');
-
-const root = PATH.join(__dirname, '.proto');
 
 ggConf({
     grpc,
     protobufjs,
-    root,
 });
 const {PORT, APP_PORT} = config;
-
-const protoPath = PATH.resolve(root, config.protoPath);
-const protoPath2 = PATH.resolve(root, config.protoPath2);
-const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
 
 const sayHello = async function (args, metadata) {
     const {name, gender} = args;
@@ -51,18 +43,12 @@ app.listen(APP_PORT, async () => {
         bindPath: `0.0.0.0:${PORT}`
     });
     await server.registerService(
-      {
-        fileLocation: 'local',
-        protoPath: protoPath,
-      },
-      {sayHello, throwAnErr}
+        {filename: 'gnat/files/helloworld.proto'},
+        {sayHello, throwAnErr}
     );
     await server.registerService(
-      {
-        fileLocation: 'local',
-        protoPath: protoPath2,
-      },
-      {sayHello}
+        {filename: 'gnat/files/helloworld2.proto'},
+        {sayHello}
     );
     server.start();
     console.log(`Server listening on ${PORT}...`);

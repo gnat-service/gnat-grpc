@@ -3,22 +3,14 @@
  */
 const {Client, config: ggConf} = require('../../');
 const config = require('./config');
-const PATH = require('path');
 const grpc = require('grpc');
 const protobufjs = require('protobufjs');
-
-const root = PATH.join(__dirname, '.proto');
 
 ggConf({
     grpc,
     protobufjs,
-    root,
 });
-const {PORT, APP_PORT} = config;
-
-const protoPath = PATH.resolve(root, config.protoPath);
-const protoPath2 = PATH.resolve(root, config.protoPath2);
-const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
+const {PORT} = config;
 
 (async () => {
     const client = new Client();
@@ -31,7 +23,7 @@ const protoUrl = `http://localhost:${APP_PORT}/helloworld.proto`;
     const service2 = await client.checkout({
         fileLocation: 'local',
         bindPath: `localhost:${PORT}`,
-        protoPath: protoPath2,
+        filename: 'gnat/files/helloworld2.proto',
     });
 
     const meta = new grpc.Metadata();

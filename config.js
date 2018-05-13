@@ -8,6 +8,8 @@ const cache = {
     grpc: null,
     protobufjs: null,
     root: null,
+    protoDir: '.proto',
+    cwd: process.cwd(),
     CUSTOM_ERR_CODE_OFFSET: 100,
 };
 
@@ -36,6 +38,7 @@ module.exports = {
             cache[key] = configuration[key] || cache[key];
         });
         cache.CUSTOM_ERR_CODE_OFFSET = cache.CUSTOM_ERR_CODE_OFFSET || configuration.customErrCodeOffset;
+        cache.root = cache.root || PATH.join(cache.cwd, cache.protoDir);
 
         const protobufjs = getConfigured('protobufjs');
 
