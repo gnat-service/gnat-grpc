@@ -20,6 +20,16 @@ import "google/protobuf/timestamp.proto";
 service WrapperTest {
     // Sends a greeting
     rpc ChangeData (Request) returns (Reply) {}
+    rpc DoubleValue (google.protobuf.DoubleValue) returns (google.protobuf.DoubleValue) {}
+    rpc FloatValue (google.protobuf.FloatValue) returns (google.protobuf.FloatValue) {}
+    rpc Int64Value (google.protobuf.Int64Value) returns (google.protobuf.Int64Value) {}
+    rpc UInt64Value (google.protobuf.UInt64Value) returns (google.protobuf.UInt64Value) {}
+    rpc Int32Value (google.protobuf.Int32Value) returns (google.protobuf.Int32Value) {}
+    rpc UInt32Value (google.protobuf.UInt32Value) returns (google.protobuf.UInt32Value) {}
+    rpc BoolValue (google.protobuf.BoolValue) returns (google.protobuf.BoolValue) {}
+    rpc StringValue (google.protobuf.StringValue) returns (google.protobuf.StringValue) {}
+    //rpc BytesValue (google.protobuf.BytesValue) returns (google.protobuf.BytesValue) {}
+    rpc Timestamp (google.protobuf.Timestamp) returns (google.protobuf.Timestamp) {}
 }
 
 // The request message containing the user's name.

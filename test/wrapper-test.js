@@ -8,9 +8,13 @@ const capitalize = require('lodash.capitalize');
 const times = require('lodash.times');
 const grpc = require('grpc');
 const protobufjs = require('protobufjs');
-const {expect} = require('chai');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
 const {random, date: randomDate} = require('faker');
 
+chai.use(chaiAsPromised);
+chai.should();
+const {expect} = chai;
 const getRandomNumByRange = (min, max) => random.number({min, max});
 
 const getters = {
@@ -251,11 +255,46 @@ describe('Base types wrapper', () => {
         return res;
     };
 
-    const svcCall = async type => {
+    const simpleArgReqObj = {};
+    const simpleArgReqMethods = [
+        'doubleValue',
+        'floatValue',
+        'int64Value',
+        'uInt64Value',
+        'int32Value',
+        'uInt32Value',
+        'boolValue',
+        'stringValue',
+    ];
+    simpleArgReqMethods.forEach(key => {
+        simpleArgReqObj[key] = arg => {
+            expect(arg).not.to.be.an('Object');
+            return arg;
+        }
+    });
+
+    simpleArgReqObj.timestamp = arg => {
+        expect(arg).to.be.an.instanceOf(Date);
+        return arg;
+    };
+
+    const callChangeData = async type => {
         const req = getObjMethods[type]();
         addReqData(req);
         const data = await service.changeData(req);
         asserts[type]('res', data);
+    };
+
+    const simpleArgReqCaller = {};
+    simpleArgReqMethods.forEach(method => {
+        simpleArgReqCaller[method] = async arg => {
+            const data = await service[method](arg);
+            expect(data).to.equal(arg);
+        }
+    });
+    simpleArgReqCaller.timestamp = async arg => {
+        const data = await service.timestamp(arg);
+        expect(data).to.deep.equal(arg);
     };
 
     before(() => {
@@ -265,7 +304,7 @@ describe('Base types wrapper', () => {
     before(() =>
         server.registerService(
             {filename: 'wrapper_test.proto'},
-            {changeData}
+            Object.assign({changeData}, simpleArgReqObj)
         )
     );
     before(() => server.start());
@@ -287,10 +326,47 @@ describe('Base types wrapper', () => {
         i = 0;
     });
 
-    it('random values', () => svcCall('random'));
-    it('null values', () => svcCall('null'));
-    it('undefined values', () => svcCall('undefined'));
-    it('typedEmpty values', () => svcCall('typedEmpty'));
+    it('random values', () => callChangeData('random'));
+    it('null values', () => callChangeData('null'));
+    it('undefined values', () => callChangeData('undefined'));
+    it('typedEmpty values', () => callChangeData('typedEmpty'));
+
+    context('simple type arg request with true value', () => {
+        it('double value', () => simpleArgReqCaller.doubleValue(3.1415926));
+        it('float value', () => simpleArgReqCaller.floatValue(3.0));
+        it('int64 value', () => simpleArgReqCaller.int64Value(3));
+        it('uint64 value', () => simpleArgReqCaller.uInt64Value(3));
+        it('int32 value', () => simpleArgReqCaller.int32Value(3));
+        it('uint32 value', () => simpleArgReqCaller.uInt32Value(3));
+        it('bool value', () => simpleArgReqCaller.boolValue(true));
+        it('string value', () => simpleArgReqCaller.stringValue('string'));
+        it('timestamp value', () => simpleArgReqCaller.timestamp(new Date()));
+    });
+    context('simple type arg request with false value', () => {
+        it('double value', () => simpleArgReqCaller.doubleValue(0));
+        it('float value', () => simpleArgReqCaller.floatValue(0));
+        it('int64 value', () => simpleArgReqCaller.int64Value(0));
+        it('uint64 value', () => simpleArgReqCaller.uInt64Value(0));
+        it('int32 value', () => simpleArgReqCaller.int32Value(0));
+        it('uint32 value', () => simpleArgReqCaller.uInt32Value(0));
+        it('bool value', () => simpleArgReqCaller.boolValue(false));
+        it('string value', () => simpleArgReqCaller.stringValue(''));
+        it('timestamp value', () => simpleArgReqCaller.timestamp(new Date(0)));
+    });
+    context('simple type arg request with null value', () => {
+        const call = async (method, val) => {
+            return simpleArgReqCaller[method](val).should.be.rejected
+        };
+        it('double value', () => call('doubleValue', null));
+        it('float value', () => call('floatValue', null));
+        it('int64 value', () => call('int64Value', null));
+        it('uint64 value', () => call('uInt64Value', null));
+        it('int32 value', () => call('int32Value', null));
+        it('uint32 value', () => call('uInt32Value', null));
+        it('bool value', () => call('boolValue', null));
+        it('string value', () => call('stringValue', null));
+        it('timestamp value', () => call('timestamp', null));
+    });
     // it('mixing values', () => svcCall('mixing'));
     // it('mixing array values', () => svcCall('mixingArr'));
     // it('mixing map values', () => svcCall('mixingMap'));

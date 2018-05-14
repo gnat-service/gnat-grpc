@@ -3,22 +3,15 @@ const clone = require('lodash.clone');
 const GOOGLE_PROTO_PRIFIX = 'google.protobuf.';
 const getFullTypeVal = name => `${GOOGLE_PROTO_PRIFIX}${name}`;
 const getFullTypeName = name => `.${getFullTypeVal(name)}`;
-const wrappedTypes = [
-    'DoubleValue',
-    'FloatValue',
-    'Int64Value',
-    'UInt64Value',
-    'Int32Value',
-    'UInt32Value',
-    'BoolValue',
-    'StringValue',
-    // 'BytesValue'
-];
 const transforms = {};
 
 const floatTypes = ['DoubleValue', 'FloatValue'].map(getFullTypeVal);
 const intTypes = ['Int64Value', 'UInt64Value', 'Int32Value', 'UInt32Value'].map(getFullTypeVal);
 const boolTypes = ['BoolValue'].map(getFullTypeVal);
+// const dateTypes = ['Timestamp'].map(getFullTypeVal);
+[floatTypes, intTypes, boolTypes].forEach(typeArr => {
+    typeArr.push(...typeArr.map(type => `.${type}`));
+});
 
 const isFloat = type => floatTypes.includes(type);
 const isInt = type => intTypes.includes(type);
@@ -35,6 +28,9 @@ const parseByType = (val, type) => {
         return parseInt(val, 10);
     }
     if (isBool(type)) {
+        if (['true', 'false'].includes(val)) {
+            return val === 'true';
+        }
         return !!val;
     }
     return val;
@@ -46,7 +42,12 @@ const wrap = (self, methodName, hook) => {
         return;
     }
 
-    const transform = (d, typeMapping, args) => {
+    const transform = (d, fullName, typeMapping, args) => {
+        const hasTransform = transforms[fullName];
+        if (hasTransform) {
+            d = transforms[fullName][methodName].call(this, d, ...args);
+        }
+
         typeMapping.forEach(({name, resolvedType, field}) => {
             if (!resolvedType) {
                 return;
@@ -60,20 +61,24 @@ const wrap = (self, methodName, hook) => {
     };
 
     self[methodName] = function (d, ...args) {
+        const {fullName} = this;
+
         const typeMapping = this._fieldsArray.map(field => {
             const {resolvedType} = field.resolve();
             return {name: field.name, resolvedType, field};
         });
-        if (!d) {
+        if ([null, undefined].includes(d)) {
             return fn.call(this, d, ...args);
         }
 
         if (hook === 'pre') {
-            d = transform(clone(d), typeMapping, args);
+            d = transform(clone(d), fullName, typeMapping, args);
         }
-        const r = fn.call(this, d, ...args);
+
+        let r = fn.call(this, d, ...args);
+
         if (hook === 'post') {
-            return transform(r, typeMapping, args);
+            return transform(r, fullName, typeMapping, args);
         }
         return r;
     };
@@ -111,7 +116,7 @@ const wrapTransform = (ctx, method, fullName, fn, o, ...args) => {
 
     if (ctx.map) {
         if (!o) {
-            return;
+            return o;
         }
         const oo = {};
         Object.keys(o).forEach((k) => {
@@ -145,13 +150,13 @@ exports.wrapBaseType = type => {
             const fn = m => {
                 const t = typeof m;
                 if (['number', 'string', 'boolean'].includes(t)) {
-                    return parseByType(m, this.type);
+                    return parseByType(m, fullName);
                 }
                 if (!m) {
                     return m;
                 }
 
-                return parseByType(m.value, this.type);
+                return parseByType(m.value, fullName);
             };
 
             return wrapToObjTrans(this, fullName, fn, m);
