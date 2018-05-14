@@ -42,10 +42,10 @@ const wrap = (self, methodName, hook) => {
         return;
     }
 
-    const transform = (d, fullName, typeMapping, args) => {
+    const transform = (ctx, d, fullName, typeMapping, args) => {
         const hasTransform = transforms[fullName];
         if (hasTransform) {
-            d = transforms[fullName][methodName].call(this, d, ...args);
+            d = transforms[fullName][methodName].call(ctx, d, ...args);
         }
 
         typeMapping.forEach(({name, resolvedType, field}) => {
@@ -72,13 +72,13 @@ const wrap = (self, methodName, hook) => {
         }
 
         if (hook === 'pre') {
-            d = transform(clone(d), fullName, typeMapping, args);
+            d = transform(this, clone(d), fullName, typeMapping, args);
         }
 
         let r = fn.call(this, d, ...args);
 
         if (hook === 'post') {
-            return transform(r, fullName, typeMapping, args);
+            return transform(this, r, fullName, typeMapping, args);
         }
         return r;
     };
