@@ -11,5 +11,6 @@ module.exports = {
     util,
     Server,
     Client,
-    config: config._config
+    config: config._config,
+    addTransforms: config.addTransforms
 };

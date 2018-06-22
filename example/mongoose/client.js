@@ -5,6 +5,7 @@ const grpc = require('grpc');
 const gnatGrpc = require('../../');
 const protobufjs = require('protobufjs');
 const PATH = require('path');
+const transformPatch = require('./patch');
 
 const root = PATH.join(__dirname, '.proto');
 const OrderProto = PATH.join(__dirname, '.proto/gnat/grpc/order.proto');
@@ -15,6 +16,7 @@ gnatGrpc.config({
     protobufjs,
     root
 });
+transformPatch(gnatGrpc);
 
 const {Client} = gnatGrpc;
 

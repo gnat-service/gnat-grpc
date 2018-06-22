@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package gnat.mongoose;
+
+message ObjectId {
+    string id = 1;
+}

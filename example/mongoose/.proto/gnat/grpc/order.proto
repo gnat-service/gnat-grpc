@@ -5,6 +5,7 @@ package gnat.grpc;
 import "user.proto";
 import "product.proto";
 import "google/protobuf/timestamp.proto";
+import "../mongoose/objectid.proto";
 
 // The greeting service definition.
 service Order {
@@ -13,7 +14,7 @@ service Order {
 }
 
 message OrderType {
-    string _id = 1;
+    gnat.mongoose.ObjectId _id = 1;
     User user = 2;
     repeated Product products = 3;
     int32 amount = 4;
