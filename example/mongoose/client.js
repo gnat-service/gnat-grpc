@@ -26,7 +26,13 @@ async function main() {
         ]
     });
     const OrderService = client.getService('gnat.grpc.Order');
-    console.log(JSON.stringify(await OrderService.list({}), null, 2))
+    const list = await OrderService.list({});
+    // console.log(JSON.stringify(list, null, 2))
+    const [order] = list.orders;
+    console.log(order._id);
+    console.log(typeof order._id);
 }
+
+process.on('unhandledRejection', e => console.error(e.stack || e));
 
 main();

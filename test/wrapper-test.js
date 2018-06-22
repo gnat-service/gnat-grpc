@@ -320,8 +320,8 @@ describe('Base types wrapper', () => {
     afterEach(() => {
         i++;
     });
-    after(() => client.close());
-    after(() => server.tryShutdown());
+    after('client shutdown', async () => client.close());
+    after('server shutdown', async () => server.tryShutdown());
     after(() => {
         i = 0;
     });
@@ -354,9 +354,8 @@ describe('Base types wrapper', () => {
         it('timestamp value', () => simpleArgReqCaller.timestamp(new Date(0)));
     });
     context('simple type arg request with null value', () => {
-        const call = async (method, val) => {
-            return simpleArgReqCaller[method](val).should.be.rejected
-        };
+        const call = async (method, val) =>
+            () => simpleArgReqCaller[method](val).should.be.rejected;
         it('double value', () => call('doubleValue', null));
         it('float value', () => call('floatValue', null));
         it('int64 value', () => call('int64Value', null));

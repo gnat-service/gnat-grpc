@@ -21,6 +21,12 @@ const getConfigured = name => {
     return o;
 };
 
+const addTransforms = (transformsSet) => {
+    (transformsSet || []).forEach(({transforms, fullName}) =>
+        patch.setTransform(fullName, transforms)
+    );
+};
+
 module.exports = {
     _config: (configuration = {}) => {
         const {
@@ -61,10 +67,11 @@ module.exports = {
         (wrappersSet || []).forEach(({wrappers, fullName}) =>
             patch.setWrapper(protobufjs, fullName, wrappers)
         );
-        (transformsSet || []).forEach(({transforms, fullName}) =>
-            patch.setTransform(fullName, transforms)
-        );
+        addTransforms(transformsSet);
     },
+
+    addTransforms,
+
     _getPath (filename) {
         return PATH.join(getConfigured('root'), filename);
     },
