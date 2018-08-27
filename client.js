@@ -71,7 +71,8 @@ class Client extends GG {
                         }
                     });
                 });
-            }
+            };
+            container.name = name;
         });
 
         return container;
