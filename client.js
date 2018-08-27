@@ -40,39 +40,43 @@ class Client extends GG {
                 return;
             }
 
-            container[name] = function (...args) {
-                const len = args.length;
-                if (!len) {
-                    args = [{}];
-                }
-
-                if (args.length < 2 || typeof args[1] !== 'object') {
-                    args.splice(1, 0, self.getMetadata(key));
-                } else {
-                    args[1] = self.getMetadata(key, args[1]);
-                }
-
-                if (args.length < 3 || typeof args[2] !== 'object') {
-                    args.splice(2, 0, self._getCallOpts(key));
-                } else {
-                    args[2] = self._getCallOpts(key, args[2]);
-                }
-
-                const callback = args[len - 1];
-                if (len && isFn(callback)) {
-                    return client[name](...args);
-                }
-                return new Promise((resolve, reject) => {
-                    client[name](...args, (err, res, ...argus) => {
-                        if (err) {
-                            reject(GG._unescapedError(err));
-                        } else {
-                            resolve(res);
+            Object.assign(
+                container,
+                {
+                    [name] (...args) {
+                        const len = args.length;
+                        if (!len) {
+                            args = [{}];
                         }
-                    });
-                });
-            };
-            container.name = name;
+
+                        if (args.length < 2 || typeof args[1] !== 'object') {
+                            args.splice(1, 0, self.getMetadata(key));
+                        } else {
+                            args[1] = self.getMetadata(key, args[1]);
+                        }
+
+                        if (args.length < 3 || typeof args[2] !== 'object') {
+                            args.splice(2, 0, self._getCallOpts(key));
+                        } else {
+                            args[2] = self._getCallOpts(key, args[2]);
+                        }
+
+                        const callback = args[len - 1];
+                        if (len && isFn(callback)) {
+                            return client[name](...args);
+                        }
+                        return new Promise((resolve, reject) => {
+                            client[name](...args, (err, res, ...argus) => {
+                                if (err) {
+                                    reject(GG._unescapedError(err));
+                                } else {
+                                    resolve(res);
+                                }
+                            });
+                        });
+                    }
+                }
+            );
         });
 
         return container;

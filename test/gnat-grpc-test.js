@@ -399,6 +399,9 @@ describe('GnatGrpc', () => {
 
                     expect(ret).to.have.property('message').which.equal(`Hello ${name}`);
                 });
+                it('check method name', async () => {
+                    expect(service.sayHello).to.have.property('name').which.equal('sayHello');
+                });
                 context('call service method with metadata', () => {
                     let p;
                     const assertFn = function (req, call) {
