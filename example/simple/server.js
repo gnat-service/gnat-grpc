@@ -3,7 +3,6 @@
  */
 const {Server, config: ggConf} = require('../../');
 const config = require('./config');
-const app = require('./.proto/gnat/files');
 const grpc = require('grpc');
 const protobufjs = require('protobufjs');
 
@@ -38,7 +37,7 @@ const throwAnErr = ({name}) => {
     throw err;
 };
 
-app.listen(APP_PORT, async () => {
+(async () => {
     const server = new Server({
         bindPath: `0.0.0.0:${PORT}`
     });
@@ -52,4 +51,4 @@ app.listen(APP_PORT, async () => {
     );
     server.start();
     console.log(`Server listening on ${PORT}...`);
-});
+})();

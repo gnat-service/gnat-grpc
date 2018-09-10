@@ -106,7 +106,7 @@ class Server extends GG {
         return this.server.start(...args);
     }
 
-    async tryShutdown () {
+    async _close () {
         return new Promise((resolve, reject) =>
             this.server.tryShutdown((err, res) => {
                 err ? reject(err) : resolve(res);
@@ -114,8 +114,13 @@ class Server extends GG {
         );
     }
 
+    async tryShutdown () {
+        return this.close();
+    }
+
     loadMethodsTree (methods) {
         methods && Object.keys(methods).forEach(key => this.addMethods(key, methods[key]));
+        this.emit('postServiceReady', this);
     }
 
     static async addServer (configs, methods = configs.methods) {

@@ -3,9 +3,10 @@
  */
 const config = require('./config');
 const utils = require('./utils');
+const EventEmitter = require('events');
 
 const {loader, check} = utils;
-const {serviceConflict: checkServiceConflict, strOpt: checkStrOpt} = check;
+const {/*serviceConflict: checkServiceConflict, */strOpt: checkStrOpt} = check;
 
 const optsHandler = (opts, cb) => {
     opts = Object.assign(
@@ -26,8 +27,9 @@ const optsHandler = (opts, cb) => {
     return opts;
 };
 
-class GnatGrpc {
+class GnatGrpc extends EventEmitter {
     constructor () {
+        super();
         this.services = {};
         this.roots = {};
         // this.root = new config.protobufjs.Root();
@@ -61,6 +63,18 @@ class GnatGrpc {
         return err;
     }
 
+    close () {
+        this.emit('close');
+        return this._close();
+    }
+
+    _registerSvc (key, Svc) {
+        this.services[key] = Svc;
+        this.roots[key] = root;
+        this.emit('postRegisterService', this);
+        return this;
+    }
+
     _retrieveSvc (root, parent, opts, pkgName = '') {
         const keys = Object.keys(parent);
 
@@ -78,8 +92,7 @@ class GnatGrpc {
                 }
 
                 // checkServiceConflict(this.services, key);
-                this.services[key] = Svc;
-                this.roots[key] = root;
+                this._registerSvc(key, Svc, root);
                 return arr.push({pkg: pkgName, name, Svc});
             }
 

@@ -113,11 +113,9 @@ class Client extends GG {
             return wrappedClient;
         });
 
-        if (arr.length === 1) {
-            return arr[0];
-        }
-
-        return arr;
+        const result = arr.length === 1 ? arr[0] : arr;
+        this.emit('postServiceReady', this, arr);
+        return result;
     }
 
     checkoutSync (opts, metadata = {}, callOptions) {
@@ -137,7 +135,7 @@ class Client extends GG {
         return this.clients[key];
     }
 
-    close () {
+    _close () {
         Object.keys(this.rawClients).forEach(key => {
             const c = this.rawClients[key];
             if (c && isFn(c.close)) {
