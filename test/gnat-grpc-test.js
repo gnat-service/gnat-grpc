@@ -1,6 +1,7 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
+const GG = require('../gnat-grpc');
 const config = require('../config');
 const Server = require('../server');
 const Client = require('../client');
@@ -172,9 +173,7 @@ describe('GnatGrpc', () => {
                 client = new hello_proto.Greeter(`localhost:${PORT}`, config.grpc.credentials.createInsecure());
             });
 
-            afterEach(() => {
-                client.close();
-            });
+            afterEach(() => client.close());
             afterEach(done => server.server.tryShutdown(done));
 
             context('#<method>', () => {
@@ -444,6 +443,167 @@ describe('GnatGrpc', () => {
                     });
                 });
             });
+        });
+    });
+
+    describe('events', () => {
+        let triggeredEvents;
+        let allTriggeredEvts;
+        const name = random.word();
+        let server;
+        let client;
+        const expected = [
+            [
+                'server-postRegisterService',
+                'server-postServerReady',
+                'client-postRegisterService',
+                'client-postServicesReady',
+                "client-request",
+                "server-request",
+                "server-response",
+                "client-response",
+                'client-close',
+                'server-close'
+            ],
+            [
+                'server-postRegisterService',
+                'client-postRegisterService',
+                'client-postServicesReady'
+            ]
+        ];
+        beforeEach(() => {
+            triggeredEvents = [[]];
+            allTriggeredEvts = {client: [], server: []};
+        });
+        const getServices = () => [
+            {filename: 'helloworld.proto'},
+            {filename: 'helloworld2.proto'},
+        ];
+        const sayHello = function ({name}) {
+            return {message: `Hello ${name}`, testExField: '1111'};
+        };
+
+        const pubAsserts = (type, evt, self, args, expectedArgLen) => {
+            const el = `${type}-${evt}`;
+            expect(args).to.have.length(expectedArgLen);
+            evt !== 'close' && expect(self).to.be.an.instanceOf(GG);
+
+            allTriggeredEvts[type].push(el);
+            triggeredEvents.some(arr => {
+                if (arr.includes(el)) {
+                    return false;
+                }
+                arr.push(el);
+                return true;
+            }) || triggeredEvents.push([el]);
+        };
+
+        const getEvts = (type, evtArgLenMap = {}) => {
+            const results = {};
+            (
+                type === 'server' ?
+                    ['postRegisterService', 'postServerReady', 'close'] :
+                    ['postRegisterService', 'postServicesReady', 'close']
+            ).forEach(evt => [
+                results[evt] = (self, ...args) =>
+                    pubAsserts(type, evt, self, args, evtArgLenMap.hasOwnProperty(evt) ? evtArgLenMap[evt] : 1),
+            ]);
+            return results;
+        };
+
+        const assertMetadata = (metadata, expected) => {
+            expect(metadata).to.be.an.instanceOf(grpc.Metadata);
+            expect(metadata.getMap()).to.deep.equal(expected);
+        };
+
+        beforeEach(async () => {
+            server = await Server.addServer({
+                bindPath: `0.0.0.0:${PORT}`,
+                services: getServices(),
+                methods: {
+                    'gnat.helloworld.Greeter': {sayHello},
+                    'gnat.helloworld2.Greeter2': {sayHello},
+                },
+                events: Object.assign(
+                    {
+                        request (self, call, ...restArgs) {
+                            expect(call).to.includes.all.keys('metadata', 'request', 'call');
+
+                            const meta = call.metadata.getMap();
+                            expect(meta).to.have.property('user-agent').and.to.be.a('string');
+                            assertMetadata(call.metadata, {
+                                'user-agent': meta['user-agent'],
+                                service: 'gnat.helloworld.Greeter',
+                                'x-gnat-grpc-service': 'gnat.helloworld.Greeter',
+                            });
+                            expect(call.request).to.have.property('name').and.equal(name);
+                            pubAsserts('server', 'request', self, restArgs, 0);
+                        },
+                        response (self, res, ...restArgs) {
+                            expect(res).to.have.property('message').and.equal(`Hello ${name}`);
+                            pubAsserts ('server', 'response', self, restArgs, 2);
+                        }
+                    },
+                    getEvts('server', {postRegisterService: 2, close: 0})
+                )
+            });
+            server.start();
+        });
+        beforeEach(async () => {
+            client = await Client.checkoutServices({
+                bindPath: `localhost:${PORT}`,
+                services: getServices(),
+                events: Object.assign(
+                    {
+                        request (self, ...args) {
+                            pubAsserts ('client', 'request', self, args, 3);
+                            const [params, metadata, callOpts] = args;
+                            expect(params).to.deep.equal({name});
+                            assertMetadata(metadata, {
+                                service: 'gnat.helloworld.Greeter',
+                                'x-gnat-grpc-service': 'gnat.helloworld.Greeter',
+                            });
+                            expect(callOpts).to.deep.equal({});
+                        },
+                        response (self, res, ...restArgs) {
+                            expect(res).to.deep.equal({message: `Hello ${name}`});
+                            pubAsserts ('client', 'response', self, restArgs, 0);
+                        }
+                    },
+                    getEvts('client', {postRegisterService: 2, close: 0})
+                )
+            });
+        });
+
+        beforeEach(async () => {
+            const service = client.getService('gnat.helloworld.Greeter');
+            await service.sayHello({name});
+        });
+
+        beforeEach(() => client.close());
+        beforeEach(() => server.tryShutdown());
+        it('should trigger events by order', async () => {
+            expect(triggeredEvents).to.have.length(expected.length);
+            expected.forEach((el, i) =>
+                expect(triggeredEvents[i]).to.deep.equal(el)
+            );
+            expect(allTriggeredEvts.server).to.deep.equal([
+                'server-postRegisterService',
+                'server-postRegisterService',
+                'server-postServerReady',
+                "server-request",
+                "server-response",
+                'server-close'
+            ]);
+            expect(allTriggeredEvts.client).to.deep.equal([
+                "client-postRegisterService",
+                "client-postServicesReady",
+                "client-postRegisterService",
+                "client-postServicesReady",
+                "client-request",
+                "client-response",
+                "client-close",
+            ]);
         });
     });
 });

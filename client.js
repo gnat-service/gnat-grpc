@@ -19,8 +19,8 @@ const checkoutOptsChecker = opts => {
 };
 
 class Client extends GG {
-    constructor () {
-        super();
+    constructor (...args) {
+        super(...args);
         this.clients = {};
         this.rawClients = {};
         this[containerSym] = {};
@@ -61,15 +61,20 @@ class Client extends GG {
                             args[2] = self._getCallOpts(key, args[2]);
                         }
 
+                        self.emit('request', self, ...args);
+
                         const callback = args[len - 1];
                         if (len && isFn(callback)) {
-                            return client[name](...args);
+                            const result = client[name](...args);
+                            self.emit('response', self, result);
+                            return result;
                         }
                         return new Promise((resolve, reject) => {
                             client[name](...args, (err, res, ...argus) => {
                                 if (err) {
                                     reject(GG._unescapedError(err));
                                 } else {
+                                    self.emit('response', self, res, ...argus);
                                     resolve(res);
                                 }
                             });
@@ -94,7 +99,7 @@ class Client extends GG {
             metadata = new config.grpc.Metadata()
         }
         const ctx = this[containerSym][key];
-        obj = Object.assign({service: key}, ctx.metadata, obj);
+        obj = Object.assign({service: key, 'x-gnat-grpc-service': key}, ctx.metadata, obj);
         Object.keys(obj).forEach(k =>
             metadata.set(k, obj[k])
         );
@@ -114,19 +119,19 @@ class Client extends GG {
         });
 
         const result = arr.length === 1 ? arr[0] : arr;
-        this.emit('postServiceReady', this, arr);
+        this.emit('postServicesReady', this, arr);
         return result;
     }
 
     checkoutSync (opts, metadata = {}, callOptions) {
         checkoutOptsChecker(opts);
-        const svcMapping = this._loadProtoSync(opts);
+        const svcMapping = this._loadConfSync(opts);
         return this._checkout(opts, metadata, callOptions, svcMapping);
     }
 
     async checkout (opts, metadata = {}, callOptions) {
         checkoutOptsChecker(opts);
-        const svcMapping = await this._loadProto(opts);
+        const svcMapping = await this._loadConf(opts);
         return this._checkout(opts, metadata, callOptions, svcMapping);
     }
 
@@ -144,8 +149,8 @@ class Client extends GG {
         });
     }
 
-    static async checkoutServices ({bindPath, services, metadata, callOptions}) {
-        const client = new Client();
+    static async checkoutServices ({bindPath, services, metadata, callOptions, events}) {
+        const client = new Client({events});
         for (let opts of services) {
             const meta = Object.assign({}, metadata, opts.metadata);
             const callOpts = Object.assign({}, callOptions, opts.callOptions);
@@ -157,8 +162,8 @@ class Client extends GG {
         return client;
     }
 
-    static checkoutServicesSync ({bindPath, services, metadata, callOptions}) {
-        const client = new Client();
+    static checkoutServicesSync ({bindPath, services, metadata, callOptions, events}) {
+        const client = new Client({events});
         for (let opts of services) {
             const meta = Object.assign({}, metadata, opts.metadata);
             const callOpts = Object.assign({}, callOptions, opts.callOptions);

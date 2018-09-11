@@ -8,12 +8,13 @@ const utils = require('./utils');
 const {check} = utils;
 const {strOpt: checkStrOpt} = check;
 
-const methodsHandler = function (methods) {
+const methodsHandler = function (ctx, methods) {
     const {Metadata} = config.grpc;
     const coll = {};
     Object.keys(methods).forEach(name => {
         const fn = methods[name];
         coll[name] = async function (call, callback) {
+            ctx.emit('request', ctx, call);
             let ret;
             let err;
             let trailer;
@@ -35,6 +36,7 @@ const methodsHandler = function (methods) {
             const o = {fn, call, setTrailer, setFlags, metadata, request, context: coll};
             try {
                 ret = await o.fn(request, metadata, {setTrailer, setFlags}, call);
+                ctx.emit('response', ctx, ret, trailer, flags);
             } catch (e) {
                 err = GG._escapedError(e);
             }
@@ -50,7 +52,7 @@ const servicesSym = Symbol('services');
 
 class Server extends GG {
     constructor (opts = {}) {
-        super();
+        super(opts);
         if (!opts.credentials) {
             console.warn('`opts.credentials` is not set, an insecure one will be used.');
         }
@@ -72,31 +74,31 @@ class Server extends GG {
         });
     }
 
-    async _loadProto (opts) {
+    async _loadConf (opts) {
         return this._svcMappingHandler(
-            await super._loadProto(opts)
+            await super._loadConf(opts)
         );
     }
 
-    _loadProtoSync (opts) {
+    _loadConfSync (opts) {
         return this._svcMappingHandler(
-            super._loadProtoSync(opts)
+            super._loadConfSync(opts)
         );
     }
 
     addMethods (key, methods) {
-        const handledMethods = methodsHandler(methods);
+        const handledMethods = methodsHandler(this, methods);
         this.server.addService(this[servicesSym][key], handledMethods);
         return this;
     }
 
     async registerService (opts, methods) {
-        const mapping = await this._loadProto(opts);
+        const mapping = await this._loadConf(opts);
         mapping.map(({key}) => this.addMethods(key, methods));
     }
 
     registerServiceSync (opts, methods) {
-        const mapping = this._loadProtoSync(opts);
+        const mapping = this._loadConfSync(opts);
         mapping.map(({key}) => this.addMethods(key, methods));
     }
 
@@ -118,25 +120,26 @@ class Server extends GG {
         return this.close();
     }
 
-    loadMethodsTree (methods) {
+    loadMethodsTree (server, methods) {
         methods && Object.keys(methods).forEach(key => this.addMethods(key, methods[key]));
-        this.emit('postServiceReady', this);
+        this.emit('postServerReady', this, server);
     }
 
     static async addServer (configs, methods = configs.methods) {
         const server = new Server(configs);
         for (let cfg of configs.services) {
-            await server._loadProto(cfg);
+            cfg.events = Object.assign(cfg.events || {}, configs.events);
+            await server._loadConf(cfg);
         }
-        server.loadMethodsTree(methods);
+        server.loadMethodsTree(server, methods);
 
         return server;
     }
 
     static addServerSync (configs, methods = configs.methods) {
         const server = new Server(configs);
-        configs.services.forEach(cfg => server._loadProtoSync(cfg));
-        server.loadMethodsTree(methods);
+        configs.services.forEach(cfg => server._loadConfSync(cfg));
+        server.loadMethodsTree(server, methods);
 
         return server;
     }

@@ -28,11 +28,12 @@ const optsHandler = (opts, cb) => {
 };
 
 class GnatGrpc extends EventEmitter {
-    constructor () {
+    constructor ({events} = {}) {
         super();
         this.services = {};
         this.roots = {};
         // this.root = new config.protobufjs.Root();
+        this._registerEvts({events});
     }
 
     static _getServiceKey ({pkgName, service}) {
@@ -68,10 +69,10 @@ class GnatGrpc extends EventEmitter {
         return this._close();
     }
 
-    _registerSvc (key, Svc) {
+    _registerSvc (key, Svc, root) {
         this.services[key] = Svc;
         this.roots[key] = root;
-        this.emit('postRegisterService', this);
+        this.emit('postRegisterService', this, key, Svc);
         return this;
     }
 
@@ -103,7 +104,13 @@ class GnatGrpc extends EventEmitter {
         return arr;
     }
 
-    async _loadProto (opts) {
+    _registerEvts ({events} = {}) {
+        events && Object.keys(events).forEach(key =>
+            this.on(key, events[key])
+        );
+    }
+
+    async _loadConf (opts) {
         opts = optsHandler(opts);
         const root = new config.protobufjs.Root();
         const pkg = opts.fileLocation === 'remote' ?
@@ -113,7 +120,7 @@ class GnatGrpc extends EventEmitter {
         return this._retrieveSvc(root, pkg, opts);
     }
 
-    _loadProtoSync (opts) {
+    _loadConfSync (opts) {
         opts = optsHandler(opts);
         const root = new config.protobufjs.Root();
         const pkg = loader.loadByVer6Sync(opts.protoPath, root);
