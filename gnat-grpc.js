@@ -7,6 +7,7 @@ const EventEmitter = require('events');
 
 const {loader, check} = utils;
 const {/*serviceConflict: checkServiceConflict, */strOpt: checkStrOpt} = check;
+const plugins = [];
 
 const optsHandler = (opts, cb) => {
     opts = Object.assign(
@@ -32,6 +33,7 @@ class GnatGrpc extends EventEmitter {
         super();
         this.services = {};
         this.roots = {};
+        this._loadPlugins();
         // this.root = new config.protobufjs.Root();
         this._registerEvts({events});
     }
@@ -67,6 +69,18 @@ class GnatGrpc extends EventEmitter {
     close () {
         this.emit('close');
         return this._close();
+    }
+
+    registerPlugins (plugin) {
+        const tp = typeof plugin;
+        if (tp !== 'function') {
+            throw new TypeError(`Expect \`plugin\` to be a function, got a "${tp}".`);
+        }
+        plugins.push(plugin);
+    }
+
+    _loadPlugins () {
+        plugins.forEach(plugin => plugin(this));
     }
 
     _registerSvc (key, Svc, root) {
