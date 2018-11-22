@@ -4,10 +4,12 @@
 const config = require('./config');
 const utils = require('./utils');
 const EventEmitter = require('events');
+const get = require('lodash.get');
 
 const {loader, check} = utils;
 const {/*serviceConflict: checkServiceConflict, */strOpt: checkStrOpt} = check;
 const plugins = [];
+const isServerSym = Symbol('isServer');
 
 const optsHandler = (opts, cb) => {
     opts = Object.assign(
@@ -29,17 +31,30 @@ const optsHandler = (opts, cb) => {
 };
 
 class GnatGrpc extends EventEmitter {
-    constructor ({events} = {}) {
+    constructor ({events, isServer} = {}) {
         super();
         this.services = {};
         this.roots = {};
-        this._loadPlugins();
+        this[isServerSym] = !!isServer;
         // this.root = new config.protobufjs.Root();
         this._registerEvts({events});
+
+    }
+
+    get isServer () {
+        return this[isServerSym];
+    }
+
+    get isClient () {
+        return !this[isServerSym];
     }
 
     static _getServiceKey ({pkgName, service}) {
         return `${pkgName}.${service}`;
+    }
+
+    static _splitServiceKey (key) {
+        return key.match(/(.+)\.([^.]+)/).slice(1, 3);
     }
 
     static _isServiceClient (ctr) {
@@ -83,39 +98,10 @@ class GnatGrpc extends EventEmitter {
         plugins.forEach(plugin => plugin(this));
     }
 
-    _registerSvc (key, Svc, root) {
+    _registerSvc (key, Svc) {
         this.services[key] = Svc;
-        this.roots[key] = root;
         this.emit('postRegisterService', this, key, Svc);
         return this;
-    }
-
-    _retrieveSvc (root, parent, opts, pkgName = '') {
-        const keys = Object.keys(parent);
-
-        const arr = [];
-        keys.forEach(name => {
-            const Svc = parent[name];
-
-            if (GnatGrpc._isServiceClient(Svc)) {
-                opts.pkgName = opts.pkgName || pkgName;
-                const key = GnatGrpc._getServiceKey({pkgName, service: name});
-
-                // Skip registered services.
-                if (this.services[key]) {
-                    return console.log(`Service ${key} already exists, skipped.`);
-                }
-
-                // checkServiceConflict(this.services, key);
-                this._registerSvc(key, Svc, root);
-                return arr.push({pkg: pkgName, name, Svc});
-            }
-
-            if (Svc && typeof Svc === 'object' && Svc.constructor.name === 'Object') {
-                return arr.push(...this._retrieveSvc(root, Svc, opts, pkgName ? `${pkgName}.${name}` : name));
-            }
-        });
-        return arr;
     }
 
     _registerEvts ({events} = {}) {
@@ -124,22 +110,33 @@ class GnatGrpc extends EventEmitter {
         );
     }
 
-    async _loadConf (opts) {
+    static _execDefinitionFn (name, opts) {
         opts = optsHandler(opts);
-        const root = new config.protobufjs.Root();
-        const pkg = opts.fileLocation === 'remote' ?
-            await loader.loadFromRemote(opts.protoPath, root) :
-            await loader.loadByVer6(opts.protoPath, root);
-
-        return this._retrieveSvc(root, pkg, opts);
+        return config.protoLoader[name](opts.protoPath, opts.loadOpts);
     }
 
-    _loadConfSync (opts) {
-        opts = optsHandler(opts);
-        const root = new config.protobufjs.Root();
-        const pkg = loader.loadByVer6Sync(opts.protoPath, root);
+    _parseDefPkg (pkg) {
+        const paths = Object.keys(pkg);
 
-        return this._retrieveSvc(root, pkg, opts);
+        const result = config.grpc.loadPackageDefinition(pkg);
+        const arr = [];
+        paths.forEach(path => {
+            const Svc = get(result, path);
+            const [pkgName, name] = GnatGrpc._splitServiceKey(path);
+            arr.push({pkg: pkgName, name, Svc});
+            this._registerSvc(path, Svc);
+        });
+        return arr;
+    }
+
+    _loadDefinitionSync (opts) {
+        const pkg = GnatGrpc._execDefinitionFn('loadSync', opts);
+        return this._parseDefPkg(pkg);
+    }
+
+    async _loadDefinition (opts) {
+        const pkg = await GnatGrpc._execDefinitionFn('load', opts);
+        return this._parseDefPkg(pkg);
     }
 }
 

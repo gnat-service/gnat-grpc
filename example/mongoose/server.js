@@ -6,7 +6,6 @@ const db = require('./db');
 const initData = require('./init-data');
 const gnatGrpc = require('../../');
 const grpc = require('grpc');
-const protobufjs = require('protobufjs');
 const PATH = require('path');
 const _ = require('lodash');
 const transformPatch = require('./patch');
@@ -17,7 +16,7 @@ const PORT = 50051;
 
 gnatGrpc.config({
     grpc,
-    protobufjs,
+    protoLoader: require('@grpc/proto-loader'),
     root
 });
 transformPatch(gnatGrpc);

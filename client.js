@@ -13,17 +13,20 @@ const isFn = fn => typeof fn === 'function';
 
 const checkoutOptsChecker = opts => {
     checkStrOpt(opts, 'bindPath');
-    if (!opts.credentials) {
-        console.warn('`opts.credentials` is not set, an insecure one will be used.');
-    }
+    // if (!opts.credentials) {
+    //     config.logger.warn('`opts.credentials` is not set, an insecure one will be used.');
+    // }
 };
 
 class Client extends GG {
     constructor (...args) {
+        !args.length && args.push({});
+        args[0].isServer = false;
         super(...args);
         this.clients = {};
         this.rawClients = {};
         this[containerSym] = {};
+        this._loadPlugins();
     }
 
     _wrapMethods (client, Svc, key) {
@@ -34,10 +37,13 @@ class Client extends GG {
         const {service} = Svc;
 
         Object.keys(service).forEach(name => {
-            const method = client[name];
             const attrs = service[name];
+            const method = client[name];
             if (!isRpc(attrs) || !isFn(method)) {
                 return;
+            }
+            if (attrs.path.indexOf(name) > 0) { // 检查方法名是否与 url path 一致，如果是，则更改为 originalName
+                name = attrs.originalName;
             }
 
             Object.assign(
@@ -125,13 +131,13 @@ class Client extends GG {
 
     checkoutSync (opts, metadata = {}, callOptions) {
         checkoutOptsChecker(opts);
-        const svcMapping = this._loadConfSync(opts);
+        const svcMapping = this._loadDefinitionSync(opts);
         return this._checkout(opts, metadata, callOptions, svcMapping);
     }
 
     async checkout (opts, metadata = {}, callOptions) {
         checkoutOptsChecker(opts);
-        const svcMapping = await this._loadConf(opts);
+        const svcMapping = await this._loadDefinition(opts);
         return this._checkout(opts, metadata, callOptions, svcMapping);
     }
 

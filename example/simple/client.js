@@ -4,11 +4,10 @@
 const {Client, config: ggConf} = require('../../');
 const config = require('./config');
 const grpc = require('grpc');
-const protobufjs = require('protobufjs');
 
 ggConf({
     grpc,
-    protobufjs,
+    protoLoader: require('@grpc/proto-loader')
 });
 const {PORT} = config;
 

@@ -6,7 +6,7 @@ const server = require('./file-server');
 const request = require('supertest');
 const {expect} = require('chai');
 
-describe('file-server', () => {
+describe.skip('file-server', () => {
     describe('/example.txt', () => {
         it('should got file content', done => {
             const expected = 'Hello\nWorld!';

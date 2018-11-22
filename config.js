@@ -6,11 +6,12 @@ const patch = require('./patch');
 
 const cache = {
     grpc: null,
-    protobufjs: null,
+    protoLoader: null,
     root: null,
     protoDir: '.proto',
     cwd: process.cwd(),
     CUSTOM_ERR_CODE_OFFSET: 100,
+    logger: console
 };
 
 const getConfigured = name => {
@@ -43,11 +44,17 @@ module.exports = {
             }
             cache[key] = configuration[key] || cache[key];
         });
+
         cache.CUSTOM_ERR_CODE_OFFSET = cache.CUSTOM_ERR_CODE_OFFSET || configuration.customErrCodeOffset;
         cache.root = cache.root || PATH.join(cache.cwd, cache.protoDir);
 
-        const protobufjs = getConfigured('protobufjs');
-
+        let protobufjs;
+        try {
+            protobufjs = require('@grpc/proto-loader/node_modules/protobufjs');
+        } catch (e) {
+            protobufjs = require('protobufjs');
+        }
+        cache.protobufjs = protobufjs;
         patch.protobufjs(protobufjs);
 
         if (wrapBaseType) {
@@ -75,16 +82,25 @@ module.exports = {
     _getPath (filename) {
         return PATH.join(getConfigured('root'), filename);
     },
+    has (name) {
+        return !!cache[name];
+    },
     get grpc () {
         return getConfigured('grpc');
     },
     get protobufjs () {
         return getConfigured('protobufjs');
     },
+    get protoLoader () {
+        return getConfigured('protoLoader');
+    },
     get root () {
         return getConfigured('root');
     },
     get customErrCodeOffset () {
         return getConfigured('CUSTOM_ERR_CODE_OFFSET');
+    },
+    get logger () {
+        return getConfigured('logger');
     }
 };

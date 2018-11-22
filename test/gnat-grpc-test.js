@@ -12,7 +12,8 @@ const {random} = require('faker');
 
 config._config({
     grpc: require('grpc'),
-    protobufjs: require('protobufjs'),
+    // protobufjs: require('protobufjs'),
+    protoLoader: require('@grpc/proto-loader'),
     root: PATH.join(__dirname, 'file-server/files'),
 });
 const {grpc} = config;
@@ -80,7 +81,7 @@ describe('GnatGrpc', () => {
                 server.start();
             });
 
-            afterEach(done => server.server.tryShutdown(done));
+            afterEach(() => server.tryShutdown());
 
             it('should create a grpc server', () =>
                 assertServer({protoPath, pkgName: 'gnat.helloworld', service: 'Greeter'})
@@ -184,7 +185,7 @@ describe('GnatGrpc', () => {
                         expect(args).to.have.length(4);
                         const [request, metaMap, setters, call] = args;
                         expect(request).to.be.an('Object')
-                            .which.deep.equal({position: 'ADMIN', name, gender: 'MALE'});
+                            .which.deep.equal({name});
                         expect(metaMap).to.be.an('Object')
                             .which.have.property('key')
                             .that.equal('value');

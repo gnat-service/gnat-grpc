@@ -6,8 +6,8 @@ const PATH = require('path');
 const camelCase = require('lodash.camelcase');
 const capitalize = require('lodash.capitalize');
 const times = require('lodash.times');
+const isEmpty = require('lodash.isempty');
 const grpc = require('grpc');
-const protobufjs = require('protobufjs');
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const {random, date: randomDate} = require('faker');
@@ -177,7 +177,7 @@ const root = PATH.join(__dirname, 'file-server/files');
 
 ggConf({
     grpc,
-    protobufjs,
+    protoLoader: require('@grpc/proto-loader'),
     root,
 });
 const PORT = 50021;
@@ -196,6 +196,13 @@ describe('Base types wrapper', () => {
         Object.keys(expected).sort().forEach(f => o1[f] = expected[f]);
         const o2 = {};
         Object.keys(data).sort().forEach(f => o2[f] = data[f]);
+        data.type === 'typedEmpty' && Object.keys(expected).forEach(key => {
+            const val = expected[key];
+            // 在使用了 @grpc/proto-loader 之后，所有的 typedEmpty 值会被替换为 undefined。Timestamp 除外
+            if (val && isEmpty(val) && !(val instanceof Date)) {
+                expected[key] = undefined;
+            }
+        });
         expect(data).to.deep.equal(expected);
     };
     const nullAssert = (dataType, data) => {
@@ -206,7 +213,7 @@ describe('Base types wrapper', () => {
             } else if (/Map$/.test(wrapped)) {
                 expect(data).to.have.property(camelCase(wrapped)).to.deep.equal({});
             } else {
-                expect(data).to.have.property(camelCase(wrapped)).to.equal(null);
+                expect(data).to.have.property(camelCase(wrapped)).to.equal(undefined);
             }
         });
     };

@@ -52,16 +52,18 @@ const servicesSym = Symbol('services');
 
 class Server extends GG {
     constructor (opts = {}) {
+        opts.isServer = true;
         super(opts);
-        if (!opts.credentials) {
-            console.warn('`opts.credentials` is not set, an insecure one will be used.');
-        }
+        // if (!opts.credentials) {
+        //     console.warn('`opts.credentials` is not set, an insecure one will be used.');
+        // }
         checkStrOpt(opts, 'bindPath');
 
         this.server = new config.grpc.Server();
         this._options = opts;
         this[svcMappingSym] = [];
         this[servicesSym] = {};
+        this._loadPlugins();
     }
 
     _svcMappingHandler (svcMapping) {
@@ -74,15 +76,15 @@ class Server extends GG {
         });
     }
 
-    async _loadConf (opts) {
+    async _loadDefinition (opts) {
         return this._svcMappingHandler(
-            await super._loadConf(opts)
+            await super._loadDefinition(opts)
         );
     }
 
-    _loadConfSync (opts) {
+    _loadDefinitionSync (opts) {
         return this._svcMappingHandler(
-            super._loadConfSync(opts)
+            super._loadDefinitionSync(opts)
         );
     }
 
@@ -93,19 +95,21 @@ class Server extends GG {
     }
 
     async registerService (opts, methods) {
-        const mapping = await this._loadConf(opts);
+        const mapping = await this._loadDefinition(opts);
         mapping.map(({key}) => this.addMethods(key, methods));
     }
 
     registerServiceSync (opts, methods) {
-        const mapping = this._loadConfSync(opts);
+        const mapping = this._loadDefinitionSync(opts);
         mapping.map(({key}) => this.addMethods(key, methods));
     }
 
     start (...args) {
         const opts = this._options;
         this.server.bind(opts.bindPath, opts.credentials || config.grpc.ServerCredentials.createInsecure());
-        return this.server.start(...args);
+        const server = this.server.start(...args);
+        this.emit('postServerReady', this, this);
+        return server;
     }
 
     async _close () {
@@ -120,26 +124,25 @@ class Server extends GG {
         return this.close();
     }
 
-    loadMethodsTree (server, methods) {
+    loadMethodsTree (methods) {
         methods && Object.keys(methods).forEach(key => this.addMethods(key, methods[key]));
-        this.emit('postServerReady', this, server);
     }
 
     static async addServer (configs, methods = configs.methods) {
         const server = new Server(configs);
         for (let cfg of configs.services) {
             cfg.events = Object.assign(cfg.events || {}, configs.events);
-            await server._loadConf(cfg);
+            await server._loadDefinition(cfg);
         }
-        server.loadMethodsTree(server, methods);
+        server.loadMethodsTree(methods);
 
         return server;
     }
 
     static addServerSync (configs, methods = configs.methods) {
         const server = new Server(configs);
-        configs.services.forEach(cfg => server._loadConfSync(cfg));
-        server.loadMethodsTree(server, methods);
+        configs.services.forEach(cfg => server._loadDefinitionSync(cfg));
+        server.loadMethodsTree(methods);
 
         return server;
     }
