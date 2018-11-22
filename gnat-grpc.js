@@ -9,6 +9,7 @@ const get = require('lodash.get');
 const {loader, check} = utils;
 const {/*serviceConflict: checkServiceConflict, */strOpt: checkStrOpt} = check;
 const plugins = [];
+const globalEvents = [];
 const isServerSym = Symbol('isServer');
 
 const optsHandler = (opts, cb) => {
@@ -31,14 +32,14 @@ const optsHandler = (opts, cb) => {
 };
 
 class GnatGrpc extends EventEmitter {
-    constructor ({events, isServer} = {}) {
+    constructor ({events = [], isServer} = {}) {
         super();
         this.services = {};
         this.roots = {};
         this[isServerSym] = !!isServer;
         // this.root = new config.protobufjs.Root();
+        this._registerEvts({events: globalEvents});
         this._registerEvts({events});
-
     }
 
     get isServer () {
@@ -86,12 +87,16 @@ class GnatGrpc extends EventEmitter {
         return this._close();
     }
 
-    registerPlugins (plugin) {
+    static registerPlugins (plugin) {
         const tp = typeof plugin;
         if (tp !== 'function') {
             throw new TypeError(`Expect \`plugin\` to be a function, got a "${tp}".`);
         }
         plugins.push(plugin);
+    }
+
+    static on (event, handler) {
+        globalEvents.push({event, handler});
     }
 
     _loadPlugins () {
@@ -105,6 +110,9 @@ class GnatGrpc extends EventEmitter {
     }
 
     _registerEvts ({events} = {}) {
+        if (Array.isArray(events)) {
+            return events.forEach(({event, handler}) => this.on(event, handler));
+        }
         events && Object.keys(events).forEach(key =>
             this.on(key, events[key])
         );

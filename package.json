@@ -45,7 +45,7 @@
     "chai-as-promised": "^7.1.1",
     "express": "^4.16.3",
     "faker": "^4.1.0",
-    "grpc": "^1.11.1",
+    "grpc": "^1.16.1",
     "lodash.camelcase": "^4.3.0",
     "lodash.capitalize": "^4.2.1",
     "lodash.isempty": "^4.4.0",
