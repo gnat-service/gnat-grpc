@@ -6,13 +6,13 @@ const utils = require('./utils');
 const EventEmitter = require('events');
 const get = require('lodash.get');
 
-const {loader, check} = utils;
+const {check} = utils;
 const {/*serviceConflict: checkServiceConflict, */strOpt: checkStrOpt} = check;
 const plugins = [];
 const globalEvents = [];
 const isServerSym = Symbol('isServer');
 
-const optsHandler = (opts, cb) => {
+const optsHandler = opts => {
     opts = Object.assign(
         {fileLocation: 'local'},
         opts
