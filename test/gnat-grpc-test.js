@@ -545,7 +545,7 @@ describe('GnatGrpc', () => {
                             pubAsserts ('server', 'response', self, restArgs, 2);
                         }
                     },
-                    getEvts('server', {postRegisterService: 2, close: 0})
+                    getEvts('server', {postRegisterService: 2, close: 0, postServerReady: 0})
                 )
             });
             server.start();

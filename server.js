@@ -108,7 +108,7 @@ class Server extends GG {
         const opts = this._options;
         this.server.bind(opts.bindPath, opts.credentials || config.grpc.ServerCredentials.createInsecure());
         const server = this.server.start(...args);
-        this.emit('postServerReady', this, this);
+        this.emit('postServerReady', this);
         return server;
     }
 
@@ -126,6 +126,10 @@ class Server extends GG {
 
     loadMethodsTree (methods) {
         methods && Object.keys(methods).forEach(key => this.addMethods(key, methods[key]));
+    }
+
+    static on (event, handler) {
+        GnatGrpc.on('server', event, handler);
     }
 
     static async addServer (configs, methods = configs.methods) {

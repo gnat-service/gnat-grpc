@@ -9,7 +9,7 @@ const get = require('lodash.get');
 const {check} = utils;
 const {/*serviceConflict: checkServiceConflict, */strOpt: checkStrOpt} = check;
 const plugins = [];
-const globalEvents = [];
+const globalEvents = {server: [], client: []};
 const isServerSym = Symbol('isServer');
 
 const optsHandler = opts => {
@@ -38,7 +38,8 @@ class GnatGrpc extends EventEmitter {
         this.roots = {};
         this[isServerSym] = !!isServer;
         // this.root = new config.protobufjs.Root();
-        this._registerEvts({events: globalEvents});
+
+        this._registerEvts({events: globalEvents[isServer ? 'server' : 'client']});
         this._registerEvts({events});
     }
 
@@ -83,7 +84,7 @@ class GnatGrpc extends EventEmitter {
     }
 
     close () {
-        this.emit('close');
+        this.emit('close', this);
         return this._close();
     }
 
@@ -95,8 +96,8 @@ class GnatGrpc extends EventEmitter {
         plugins.push(plugin);
     }
 
-    static on (event, handler) {
-        globalEvents.push({event, handler});
+    static on (end, event, handler) {
+        globalEvents[end].push({event, handler});
     }
 
     _loadPlugins () {

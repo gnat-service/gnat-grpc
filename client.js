@@ -155,6 +155,10 @@ class Client extends GG {
         });
     }
 
+    static on (event, handler) {
+        GnatGrpc.on('client', event, handler);
+    }
+
     static async checkoutServices ({bindPath, services, metadata, callOptions, events}) {
         const client = new Client({events});
         for (let opts of services) {
