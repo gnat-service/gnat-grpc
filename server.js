@@ -129,7 +129,7 @@ class Server extends GG {
     }
 
     static on (event, handler) {
-        GnatGrpc.on('server', event, handler);
+        GG.on('server', event, handler);
     }
 
     static async addServer (configs, methods = configs.methods) {
