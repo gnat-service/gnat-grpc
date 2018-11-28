@@ -55,7 +55,7 @@ class Client extends GG {
                             args = [{}];
                         }
 
-                        if (args.length < 2 || typeof args[1] !== 'object') {
+                        if (args.length < 2) {
                             args.splice(1, 0, self.getMetadata(key));
                         } else {
                             args[1] = self.getMetadata(key, args[1]);

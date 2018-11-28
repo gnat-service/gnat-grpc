@@ -1,12 +1,12 @@
 {
   "name": "gnat-grpc",
-  "version": "1.0.0-beta1.4",
+  "version": "1.0.0-beta1.4.2",
   "description": "A simple grpc sync wrapper.",
   "main": "index.js",
   "author": "leaf4monkey <joc98@163.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=10.10.0"
+    "node": "^8.11.2 || >=9.4"
   },
   "nyc": {
     "require": [
@@ -28,7 +28,7 @@
     "prepublishOnly": "yarn run cov",
     "postpublish": "sh ./bin/add-tag.sh",
     "test": "mocha --color --recursive ./test",
-    "cov": "NODE_ENV=test nyc npm test"
+    "cov": "NODE_ENV=test npx nyc npm test"
   },
   "dependencies": {
     "lodash.clone": "^4.5.0",
