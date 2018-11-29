@@ -10,10 +10,12 @@ const get = require('lodash.get');
 const {expect} = require('chai');
 const {random} = require('faker');
 
+const protoLoader = require('@grpc/proto-loader');
+
 config._config({
     grpc: require('grpc'),
     // protobufjs: require('protobufjs'),
-    protoLoader: require('@grpc/proto-loader'),
+    protoLoader,
     root: PATH.join(__dirname, 'file-server/files'),
 });
 const {grpc} = config;
@@ -37,10 +39,11 @@ describe('GnatGrpc', () => {
         let asserts = [];
         const sayHello = function ({name}) {
             asserts.forEach(cb => cb.call(this, ...Array.prototype.slice.call(arguments, 0)));
-            return {message: `Hello ${name}`, testExField: '1111'};
+            return {message: `Hello ${name}`, testExField: '1111', position: 'ADMIN'};
         };
         const assertServer = ({protoPath, pkgName, service}) => {
-            const hello_proto = get(config.grpc.load(protoPath), pkgName);
+            const pkg = protoLoader.loadSync(protoPath);
+            const hello_proto = get(config.grpc.loadPackageDefinition(pkg), pkgName);
             const client = new hello_proto[service](`localhost:${PORT}`, config.grpc.credentials.createInsecure());
 
             const name = random.word();
@@ -170,7 +173,8 @@ describe('GnatGrpc', () => {
                 server.start();
             });
             beforeEach(() => {
-                const hello_proto = get(config.grpc.load(protoPath), 'gnat.helloworld');
+                const pkg = protoLoader.loadSync(protoPath);
+                const hello_proto = get(config.grpc.loadPackageDefinition(pkg), 'gnat.helloworld');
                 client = new hello_proto.Greeter(`localhost:${PORT}`, config.grpc.credentials.createInsecure());
             });
 
@@ -185,7 +189,7 @@ describe('GnatGrpc', () => {
                         expect(args).to.have.length(4);
                         const [request, metaMap, setters, call] = args;
                         expect(request).to.be.an('Object')
-                            .which.deep.equal({name});
+                            .which.deep.equal({gender: 'MALE', name, position: 'ADMIN'});
                         expect(metaMap).to.be.an('Object')
                             .which.have.property('key')
                             .that.equal('value');
@@ -232,13 +236,16 @@ describe('GnatGrpc', () => {
         let asserts = [];
         const sayHello = function (...args) {
             asserts.forEach(cb => cb.call(this, ...args));
-            const {name} = args[0];
-            return {message: `Hello ${name}`};
+            const {name, position = 'DEVELOPER'} = args[0];
+            return {message: `Hello ${name}`, position};
         };
 
         beforeEach(async () => {
-            const hello_proto = config.grpc.load(protoPath).gnat.helloworld;
-            const hello_proto2 = config.grpc.load(protoPath2).gnat.helloworld2;
+            const pkg = protoLoader.loadSync(protoPath);
+            const hello_proto = get(config.grpc.loadPackageDefinition(pkg), 'gnat.helloworld');
+
+            const pkg2 = protoLoader.loadSync(protoPath2);
+            const hello_proto2 = get(config.grpc.loadPackageDefinition(pkg2), 'gnat.helloworld2');
             server = new config.grpc.Server();
             server.bind(`0.0.0.0:${PORT}`, config.grpc.ServerCredentials.createInsecure());
             server.addService(
@@ -425,7 +432,7 @@ describe('GnatGrpc', () => {
 
                     it('should read metadata in server side', async () => {
                         const name = random.word();
-                        await service.sayHello({name}, {camelKey: 'camelValue'});
+                        await service.sayHello({name, gender: 'FEMALE'}, {camelKey: 'camelValue'});
                         await p;
                         expect(executed).to.equal(1);
                     });
@@ -567,7 +574,7 @@ describe('GnatGrpc', () => {
                             expect(callOpts).to.deep.equal({});
                         },
                         response (self, res, ...restArgs) {
-                            expect(res).to.deep.equal({message: `Hello ${name}`});
+                            expect(res).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
                             pubAsserts ('client', 'response', self, restArgs, 0);
                         }
                     },
@@ -605,6 +612,60 @@ describe('GnatGrpc', () => {
                 "client-response",
                 "client-close",
             ]);
+        });
+    });
+
+    describe('communication', () => {
+        let server;
+        let client;
+        const asserts = [];
+
+        const sayHello = function (call) {
+            asserts.forEach(cb => cb.call(this, ...Array.prototype.slice.call(arguments, 0)));
+            const {name, position = 'REPORTER'} = call;
+            return {message: `Hello ${name}`, testExField: '1111', position};
+        };
+
+        beforeEach(async () => {
+            server = await Server.addServer({
+                bindPath: `0.0.0.0:${PORT}`,
+                services: [
+                    {filename: 'helloworld.proto'},
+                    {filename: 'helloworld2.proto'},
+                ],
+                methods: {
+                    'gnat.helloworld.Greeter': {sayHello},
+                    'gnat.helloworld2.Greeter2': {sayHello},
+                }
+            });
+            server.start();
+        });
+        beforeEach(() => {
+            client = Client.checkoutServicesSync({
+                bindPath: `localhost:${PORT}`,
+                services: [
+                    {
+                        // Cover the parent level `bindPath`.
+                        // bindPath: `localhost:${PORT}`,
+                        filename: 'helloworld.proto'
+                    },
+                    {filename: 'helloworld2.proto'},
+                ]
+            });
+        });
+
+        afterEach(() => client.close());
+        afterEach(done => server.server.tryShutdown(done));
+
+        it('should read metadata in server side', async () => {
+            const name = random.word();
+            const gender = 'FEMALE';
+            asserts.push((args) => {
+                expect(args).to.deep.equal({name, position: 'ADMIN', gender});
+            });
+            const service = client.getService('gnat.helloworld.Greeter');
+            const result = await service.sayHello({name, gender});
+            expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
         });
     });
 });

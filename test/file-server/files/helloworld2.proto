@@ -32,4 +32,11 @@ message HelloRequest {
 // The response message containing the greetings
 message HelloReply {
     string message = 1;
+    Position position = 2;
+}
+
+enum Position {
+    ADMIN = 0;
+    DEVELOPER = 1;
+    REPORTER = 2;
 }

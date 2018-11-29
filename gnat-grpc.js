@@ -121,7 +121,10 @@ class GnatGrpc extends EventEmitter {
 
     static _execDefinitionFn (name, opts) {
         opts = optsHandler(opts);
-        return config.protoLoader[name](opts.protoPath, opts.loadOpts);
+        let loadOpts = config.defaultLoaderOpts ?
+            Object.assign(config.defaultLoaderOpts, opts.loadOpts) :
+            opts.loadOpts;
+        return config.protoLoader[name](opts.protoPath, loadOpts);
     }
 
     _parseDefPkg (pkg) {

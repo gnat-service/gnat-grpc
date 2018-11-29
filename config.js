@@ -11,7 +11,8 @@ const cache = {
     protoDir: '.proto',
     cwd: process.cwd(),
     CUSTOM_ERR_CODE_OFFSET: 100,
-    logger: console
+    logger: console,
+    defaultLoaderOpts: null,
 };
 
 const getConfigured = name => {
@@ -37,6 +38,16 @@ module.exports = {
             wrappersSet,
             transformsSet
         } = configuration;
+
+        configuration.defaultLoaderOpts = Object.assign(
+            {
+                keepCase: true,
+                enums: String,
+                defaults: true,
+                oneofs: true
+            },
+            configuration.defaultLoaderOpts
+        );
 
         Object.keys(cache).forEach(key => {
             if (!configuration.hasOwnProperty(key)) {
@@ -102,5 +113,8 @@ module.exports = {
     },
     get logger () {
         return getConfigured('logger');
+    },
+    get defaultLoaderOpts () {
+        return getConfigured('defaultLoaderOpts');
     }
 };
