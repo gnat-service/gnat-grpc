@@ -235,7 +235,7 @@ describe('Base types wrapper', () => {
                     expect(data).to.have.property(camelCase(wrapped)).to.equal(0)
                 )
             );
-            expect(data).to.have.property('boolValue').to.be.a('boolean');
+            expect(data).to.have.property('boolValue').to.equal(false);
             expect(data).to.have.property('stringValue').to.equal('');
         },
         mixing: baseAssert,
