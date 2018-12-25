@@ -6,6 +6,7 @@ const patch = require('./patch');
 
 const cache = {
     grpc: null,
+    grpcClient: null,
     protoLoader: null,
     root: null,
     protoDir: '.proto',
@@ -98,6 +99,9 @@ module.exports = {
     },
     get grpc () {
         return getConfigured('grpc');
+    },
+    get grpcClient () {
+        return getConfigured('grpcClient');
     },
     get protobufjs () {
         return getConfigured('protobufjs');

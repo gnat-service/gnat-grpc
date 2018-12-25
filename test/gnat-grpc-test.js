@@ -11,13 +11,18 @@ const {expect} = require('chai');
 const {random} = require('faker');
 
 const protoLoader = require('@grpc/proto-loader');
+const grpcClient = require('@grpc/grpc-js');
 
-config._config({
+const ggConf = {
     grpc: require('grpc'),
-    // protobufjs: require('protobufjs'),
     protoLoader,
     root: PATH.join(__dirname, 'file-server/files'),
-});
+};
+if (Math.random() > .5) {
+    ggConf.grpcClient = grpcClient;
+}
+
+config._config(ggConf);
 const {grpc} = config;
 
 let PORT = 50054;
@@ -254,11 +259,14 @@ describe('GnatGrpc', () => {
                     sayHello (call, callback, ...args) {
                         callback(null, sayHello.call(this, call.request, call));
                     },
-                    throwAnErr: (call, callback) => {
+                    throwAnErr: (call, callback, ...args) => {
                         try {
                             throwAnErr(call.request);
                         } catch (e) {
-                            callback(Server._escapedError(e));
+                            console.log(e);
+                            const metadata = new grpc.Metadata();
+                            metadata.set('gnat-grpc-error-code', `20000`);
+                            callback(Server._escapedError(e), null, metadata);
                         }
                     }
                 }
@@ -308,7 +316,6 @@ describe('GnatGrpc', () => {
                     service: 'Greeter2'
                 });
             });
-            afterEach(() => client.close());
 
             it('should create a grpc client', async () => {
                 const name = random.word();
@@ -332,7 +339,8 @@ describe('GnatGrpc', () => {
 
                 expect(ret).to.be.an('Undefined');
                 expect(err).to.have.property('code').which.equal(20000);
-                expect(err).to.have.property('details').which.equal(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
+                expect(err).to.have.property('details')
+                    .which.equal(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
             });
         });
 
@@ -447,7 +455,7 @@ describe('GnatGrpc', () => {
                             err = e;
                         }
                         expect(err).to.have.property('code').which.equal(grpc.status.DEADLINE_EXCEEDED);
-                        expect(err).to.have.property('details').which.equal('Deadline Exceeded');
+                        expect(err).to.have.property('details').which.match(/^Deadline Exceeded$/i);
                     });
                 });
             });
@@ -519,8 +527,8 @@ describe('GnatGrpc', () => {
             return results;
         };
 
-        const assertMetadata = (metadata, expected) => {
-            expect(metadata).to.be.an.instanceOf(grpc.Metadata);
+        const assertMetadata = (metadata, expected, Metadata = grpc.Metadata) => {
+            expect(metadata).to.be.an.instanceOf(Metadata);
             expect(metadata.getMap()).to.deep.equal(expected);
         };
 
@@ -544,7 +552,7 @@ describe('GnatGrpc', () => {
                                 'user-agent': meta['user-agent'],
                                 service: 'gnat.helloworld.Greeter',
                                 'x-gnat-grpc-service': 'gnat.helloworld.Greeter',
-                            });
+                            }, server.grpc.Metadata);
                             expect(call.request).to.have.property('name').and.equal(name);
                             pubAsserts('server', 'request', self, restArgs, 0);
                         },
@@ -571,7 +579,7 @@ describe('GnatGrpc', () => {
                             assertMetadata(metadata, {
                                 service: 'gnat.helloworld.Greeter',
                                 'x-gnat-grpc-service': 'gnat.helloworld.Greeter',
-                            });
+                            }, client.grpc.Metadata);
                             expect(callOpts).to.deep.equal({});
                         },
                         response (self, res, ...restArgs) {

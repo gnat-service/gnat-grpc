@@ -41,6 +41,7 @@ class GnatGrpc extends EventEmitter {
 
         this._registerEvts({events: globalEvents[isServer ? 'server' : 'client']});
         this._registerEvts({events});
+        // this.grpc = config.grpc;
     }
 
     get isServer () {
@@ -68,17 +69,36 @@ class GnatGrpc extends EventEmitter {
     }
 
     static _escapedError (err) {
+        err.message = Buffer.from(err.message).toString('base64');
+        return err;
+    }
+
+    static _safeEscapedError (err) {
         if (GnatGrpc._isCustomErr(err)) {
-            err.message = Buffer.from(err.message).toString('base64');
+            err = GnatGrpc._escapedError(err);
         }
         return err;
     }
 
     static _unescapedError (err) {
+        const {details} = err;
+        err.details = Buffer.from(details, 'base64').toString('utf-8');
+        err.message = err.message.replace(details, err.details);
+        return err;
+    }
+
+    static get grpc () {
+        return config.has('grpc') ? config.grpc : config.grpcClient;
+    }
+
+    static _safeUnescapedError (err) {
+        const {UNKNOWN} = GnatGrpc.grpc.status;
+        const errCode = err.metadata && err.metadata.get('gnat-grpc-error-code');
+        if (err.code === UNKNOWN && errCode && Array.isArray(errCode)) {
+            err.code = parseInt(errCode[0], 10);
+        }
         if (GnatGrpc._isCustomErr(err)) {
-            const {details} = err;
-            err.details = Buffer.from(details, 'base64').toString('utf-8');
-            err.message = err.message.replace(details, err.details);
+            err = GnatGrpc._unescapedError(err);
         }
         return err;
     }
@@ -130,7 +150,7 @@ class GnatGrpc extends EventEmitter {
     _parseDefPkg (pkg) {
         const paths = Object.keys(pkg);
 
-        const result = config.grpc.loadPackageDefinition(pkg);
+        const result = this.grpc.loadPackageDefinition(pkg);
         const arr = [];
         paths.forEach(path => {
             const Svc = get(result, path);

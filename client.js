@@ -10,6 +10,8 @@ const {strOpt: checkStrOpt} = check;
 const containerSym = Symbol('container');
 
 const isFn = fn => typeof fn === 'function';
+const getGrpcClient = () =>
+    config.has('grpcClient') ? config.grpcClient : config.grpc;
 
 const checkoutOptsChecker = opts => {
     checkStrOpt(opts, 'bindPath');
@@ -27,6 +29,7 @@ class Client extends GG {
         this.rawClients = {};
         this[containerSym] = {};
         this._loadPlugins();
+        this.grpc = Client.grpc;
     }
 
     _wrapMethods (client, Svc, key) {
@@ -78,7 +81,7 @@ class Client extends GG {
                         return new Promise((resolve, reject) => {
                             client[name](...args, (err, res, ...argus) => {
                                 if (err) {
-                                    reject(GG._unescapedError(err));
+                                    reject(GG._safeUnescapedError(err));
                                 } else {
                                     self.emit('response', self, res, ...argus);
                                     resolve(res);
@@ -99,10 +102,11 @@ class Client extends GG {
 
     getMetadata (key, obj) {
         let metadata;
-        if (obj instanceof config.grpc.Metadata) {
+        const {Metadata} = this.grpc;
+        if (obj instanceof Metadata) {
             [metadata, obj] = [obj, null];
         } else {
-            metadata = new config.grpc.Metadata()
+            metadata = new Metadata()
         }
         const ctx = this[containerSym][key];
         obj = Object.assign({service: key, 'x-gnat-grpc-service': key}, ctx.metadata, obj);
@@ -115,7 +119,7 @@ class Client extends GG {
     _checkout (opts, metadata, callOptions, svcMapping) {
         const arr = svcMapping.map(({pkg, name, Svc}) => {
             const key = GG._getServiceKey({pkgName: pkg, service: name});
-            const client = new Svc(opts.bindPath, opts.credentials || config.grpc.credentials.createInsecure());
+            const client = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure());
             this.rawClients[key] = client;
 
             const wrappedClient = this._wrapMethods(client, Svc, key);
@@ -155,29 +159,34 @@ class Client extends GG {
         });
     }
 
+    static get grpc () {
+        return getGrpcClient();
+    }
+
     static on (event, handler) {
         GG.on('client', event, handler);
     }
 
-    static async checkoutServices ({bindPath, services, metadata, callOptions, events}) {
+    static async checkoutServices ({bindPath, credentials, services, metadata, callOptions, events}) {
         const client = new Client({events});
+        const promises = [];
         for (let opts of services) {
             const meta = Object.assign({}, metadata, opts.metadata);
             const callOpts = Object.assign({}, callOptions, opts.callOptions);
-            await client.checkout(Object.assign({bindPath}, opts, meta, callOpts));
+            promises.push(
+                client.checkout(Object.assign({bindPath, credentials}, opts, meta, callOpts))
+            );
         }
-        // await Promise.all(
-        //     services.map(opts => client.checkout(Object.assign({bindPath}, opts)))
-        // );
+        await Promise.all(promises);
         return client;
     }
 
-    static checkoutServicesSync ({bindPath, services, metadata, callOptions, events}) {
+    static checkoutServicesSync ({bindPath, credentials, services, metadata, callOptions, events}) {
         const client = new Client({events});
         for (let opts of services) {
             const meta = Object.assign({}, metadata, opts.metadata);
             const callOpts = Object.assign({}, callOptions, opts.callOptions);
-            client.checkoutSync(Object.assign({bindPath}, opts, meta, callOpts));
+            client.checkoutSync(Object.assign({bindPath, credentials}, opts, meta, callOpts));
         }
         return client;
     }

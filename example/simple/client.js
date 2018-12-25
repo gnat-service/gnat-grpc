@@ -3,10 +3,12 @@
  */
 const {Client, config: ggConf} = require('../../');
 const config = require('./config');
-const grpc = require('grpc');
+// const grpc = require('grpc');
+const grpcClient = require('@grpc/grpc-js');
 
 ggConf({
-    grpc,
+    // grpc,
+    grpcClient,
     protoLoader: require('@grpc/proto-loader')
 });
 const {PORT} = config;
@@ -25,26 +27,26 @@ const {PORT} = config;
         filename: 'gnat/files/helloworld2.proto',
     });
 
-    const meta = new grpc.Metadata();
+    const meta = new grpcClient.Metadata();
     meta.set('key', 'value');
-    const ret = await service.sayHello(
-        {
-            m: {reply: {message: '11'}},
-            name: 'World',
-            gender: 'FEMALE',
-            strArr: ['1', '2'],
-            strValArr: ['1', '2'],
-            boolVal: false,
-            time: '2018-05-12'
-        },
-        meta
-    );
-    const ret2 = await service2.sayHello({name: null});
-    const ret3 = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta, {});
-
-    console.log('Greeting:', ret);
-    console.log('Greeting again:', ret2);
-    console.log('Greeting again:', ret3);
+    // const ret = await service.sayHello(
+    //     {
+    //         m: {reply: {message: '11'}},
+    //         name: 'World',
+    //         gender: 'FEMALE',
+    //         strArr: ['1', '2'],
+    //         strValArr: ['1', '2'],
+    //         boolVal: false,
+    //         time: '2018-05-12'
+    //     },
+    //     meta
+    // );
+    // const ret2 = await service2.sayHello({name: null});
+    // const ret3 = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta, {});
+    //
+    // console.log('Greeting:', ret);
+    // console.log('Greeting again:', ret2);
+    // console.log('Greeting again:', ret3);
 
     try {
         await service.throwAnErr({name: 'WrongName'});

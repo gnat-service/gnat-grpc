@@ -9,7 +9,7 @@ const {check} = utils;
 const {strOpt: checkStrOpt} = check;
 
 const methodsHandler = function (ctx, methods) {
-    const {Metadata} = config.grpc;
+    const {Metadata} = ctx.grpc;
     const coll = {};
     Object.keys(methods).forEach(name => {
         const fn = methods[name];
@@ -24,7 +24,10 @@ const methodsHandler = function (ctx, methods) {
                     return obj;
                 }
                 trailer = trailer || new Metadata();
-                Object.keys(obj).forEach(key => trailer.set(key, obj[key]));
+                Object.keys(obj)
+                    .forEach(key =>
+                        trailer.set(key, obj[key])
+                    );
                 return trailer;
             };
             let flags;
@@ -38,7 +41,10 @@ const methodsHandler = function (ctx, methods) {
                 ret = await o.fn(request, metadata, {setTrailer, setFlags}, call);
                 ctx.emit('response', ctx, ret, trailer, flags);
             } catch (e) {
-                err = GG._escapedError(e);
+                if (GG._isCustomErr(e)) {
+                    setTrailer({'gnat-grpc-error-code': `${e.code}`});
+                    err = GG._escapedError(e);
+                }
             }
             callback(err, ret, trailer, flags);
         }
@@ -60,7 +66,8 @@ class Server extends GG {
         checkStrOpt(opts, 'bindPath', false);
         checkStrOpt(opts, 'port', false);
 
-        this.server = new config.grpc.Server();
+        this.grpc = Server.grpc;
+        this.server = new this.grpc.Server();
         this._options = opts;
         this[svcMappingSym] = [];
         this[servicesSym] = {};
@@ -109,7 +116,7 @@ class Server extends GG {
         const opts = this._options;
         const result = this.server.bind(
             opts.bindPath || opts.port,
-            opts.credentials || config.grpc.ServerCredentials.createInsecure()
+            opts.credentials || this.grpc.ServerCredentials.createInsecure()
         );
         if (result < 0) {
             throw new Error('Failed to bind port');
@@ -118,7 +125,7 @@ class Server extends GG {
 
     async bindAsync () {
         const opts = this._options;
-        const creds = opts.credentials || config.grpc.ServerCredentials.createInsecure();
+        const creds = opts.credentials || this.grpc.ServerCredentials.createInsecure();
         await new Promise((resolve, reject) => {
             this.server.bindAsync(
                 opts.bindPath || opts.port,
@@ -162,6 +169,10 @@ class Server extends GG {
 
     loadMethodsTree (methods) {
         methods && Object.keys(methods).forEach(key => this.addMethods(key, methods[key]));
+    }
+
+    static get grpc () {
+        return config.grpc;
     }
 
     static on (event, handler) {
