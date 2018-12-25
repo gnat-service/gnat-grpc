@@ -526,6 +526,7 @@ describe('GnatGrpc', () => {
 
         beforeEach(async () => {
             server = await Server.addServer({
+                // port: `${PORT}`,
                 bindPath: `0.0.0.0:${PORT}`,
                 services: getServices(),
                 methods: {
@@ -555,11 +556,11 @@ describe('GnatGrpc', () => {
                     getEvts('server', {postRegisterService: 2, close: 0, postServerReady: 0})
                 )
             });
-            server.start();
+            await server.startAsync();
         });
         beforeEach(async () => {
             client = await Client.checkoutServices({
-                bindPath: `localhost:${PORT}`,
+                bindPath: `127.0.0.1:${PORT}`,
                 services: getServices(),
                 events: Object.assign(
                     {

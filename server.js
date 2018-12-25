@@ -57,7 +57,8 @@ class Server extends GG {
         // if (!opts.credentials) {
         //     console.warn('`opts.credentials` is not set, an insecure one will be used.');
         // }
-        checkStrOpt(opts, 'bindPath');
+        checkStrOpt(opts, 'bindPath', false);
+        checkStrOpt(opts, 'port', false);
 
         this.server = new config.grpc.Server();
         this._options = opts;
@@ -104,9 +105,44 @@ class Server extends GG {
         mapping.map(({key}) => this.addMethods(key, methods));
     }
 
-    start (...args) {
+    bind () {
         const opts = this._options;
-        this.server.bind(opts.bindPath, opts.credentials || config.grpc.ServerCredentials.createInsecure());
+        const result = this.server.bind(
+            opts.bindPath || opts.port,
+            opts.credentials || config.grpc.ServerCredentials.createInsecure()
+        );
+        if (result < 0) {
+            throw new Error('Failed to bind port');
+        }
+    }
+
+    async bindAsync () {
+        const opts = this._options;
+        const creds = opts.credentials || config.grpc.ServerCredentials.createInsecure();
+        await new Promise((resolve, reject) => {
+            this.server.bindAsync(
+                opts.bindPath || opts.port,
+                creds,
+                (err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(res);
+                    }
+                }
+            )
+        });
+    }
+
+    start (...args) {
+        this.bind();
+        const server = this.server.start(...args);
+        this.emit('postServerReady', this);
+        return server;
+    }
+
+    async startAsync (...args) {
+        await this.bindAsync();
         const server = this.server.start(...args);
         this.emit('postServerReady', this);
         return server;
