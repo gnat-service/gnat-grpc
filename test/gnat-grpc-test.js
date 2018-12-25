@@ -16,7 +16,7 @@ const grpcClient = require('@grpc/grpc-js');
 const ggConf = {
     grpc: require('grpc'),
     protoLoader,
-    root: PATH.join(__dirname, 'file-server/files'),
+    root: PATH.join(__dirname, 'proto'),
 };
 if (Math.random() > .5) {
     ggConf.grpcClient = grpcClient;
@@ -26,8 +26,8 @@ config._config(ggConf);
 const {grpc} = config;
 
 let PORT = 50054;
-const protoPath = PATH.resolve(__dirname, './file-server/files/helloworld.proto');
-const protoPath2 = PATH.resolve(__dirname, './file-server/files/helloworld2.proto');
+const protoPath = PATH.resolve(__dirname, './proto/helloworld.proto');
+const protoPath2 = PATH.resolve(__dirname, './proto/helloworld2.proto');
 const throwAnErr = ({name}) => {
     const err = new Error(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
     err.code = 20000;

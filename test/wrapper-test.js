@@ -173,7 +173,7 @@ const getObjMethods = {
     }
 };
 
-const root = PATH.join(__dirname, 'file-server/files');
+const root = PATH.join(__dirname, 'proto');
 
 ggConf({
     grpc,

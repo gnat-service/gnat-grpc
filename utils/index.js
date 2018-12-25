@@ -3,6 +3,5 @@
  */
 
 module.exports = {
-    _request: require('./request'),
     check: require('./check'),
 };
