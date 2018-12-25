@@ -54,10 +54,10 @@ describe('GnatGrpc', () => {
             const name = random.word();
             return new Promise(resolve => {
                 client.sayHello({name}, function(err, response) {
+                    client.close();
                     expect(response).to.have.property('message').that.equal(`Hello ${name}`);
                     expect(response).to.not.have.property('testExField');
                     resolve();
-                    client.close();
                 });
             });
         };

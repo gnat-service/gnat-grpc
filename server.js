@@ -141,18 +141,20 @@ class Server extends GG {
         });
     }
 
-    start (...args) {
-        this.bind();
+    _start (...args) {
         const server = this.server.start(...args);
         this.emit('postServerReady', this);
         return server;
     }
 
+    start (...args) {
+        this.bind();
+        return this._start(...args);
+    }
+
     async startAsync (...args) {
         await this.bindAsync();
-        const server = this.server.start(...args);
-        this.emit('postServerReady', this);
-        return server;
+        return this._start(...args);
     }
 
     async _close () {
