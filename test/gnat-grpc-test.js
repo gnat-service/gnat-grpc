@@ -627,13 +627,22 @@ describe('GnatGrpc', () => {
     describe('communication', () => {
         let server;
         let client;
-        const asserts = [];
+        let asserts;
 
         const sayHello = function (call) {
             asserts.forEach(cb => cb.call(this, ...Array.prototype.slice.call(arguments, 0)));
             const {name, position = 'REPORTER'} = call;
             return {message: `Hello ${name}`, testExField: '1111', position};
         };
+
+        const throwFn = function (call) {
+            asserts.forEach(cb => cb.call(this, ...Array.prototype.slice.call(arguments, 0)));
+            throwAnErr(call);
+        };
+
+        beforeEach(() => {
+            asserts = [];
+        });
 
         beforeEach(async () => {
             server = await Server.addServer({
@@ -643,7 +652,7 @@ describe('GnatGrpc', () => {
                     {filename: 'helloworld2.proto'},
                 ],
                 methods: {
-                    'gnat.helloworld.Greeter': {sayHello},
+                    'gnat.helloworld.Greeter': {sayHello, throwAnErr: throwFn},
                     'gnat.helloworld2.Greeter2': {sayHello},
                 }
             });
@@ -666,7 +675,28 @@ describe('GnatGrpc', () => {
         afterEach(() => client.close());
         afterEach(done => server.server.tryShutdown(done));
 
-        it('should read metadata in server side', async () => {
+        it('when server side throws error', async () => {
+            const name = random.word();
+            const gender = 'FEMALE';
+            asserts.push((args) => {
+                expect(args).to.deep.equal({name, position: 'ADMIN', gender});
+            });
+            const service = client.getService('gnat.helloworld.Greeter');
+            let err;
+            try {
+                await service.throwAnErr({name, gender});
+            } catch (e) {
+                err = e;
+            }
+            console.log(err);
+            expect(err).to.have.property('code').that.equal(20000);
+            expect(err).to.have.property('details')
+                .that.equal(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
+            expect(err).to.have.property('metadata').that.be.an.instanceOf(client.grpc.Metadata);
+            expect(err.metadata.get('gnat-grpc-error-code')).to.deep.equal(['20000']);
+        });
+
+        it('on regular response', async () => {
             const name = random.word();
             const gender = 'FEMALE';
             asserts.push((args) => {
