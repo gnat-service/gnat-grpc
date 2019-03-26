@@ -61,7 +61,7 @@ class GnatGrpc extends EventEmitter {
     }
 
     static _isServiceClient (ctr) {
-        return ctr && ctr.name === 'ServiceClient';
+        return ctr && ['ServiceClient', 'ServiceClientImpl'].includes(ctr.name);
     }
 
     static _isCustomErr (err) {
@@ -154,6 +154,9 @@ class GnatGrpc extends EventEmitter {
         const arr = [];
         paths.forEach(path => {
             const Svc = get(result, path);
+            if (!GnatGrpc._isServiceClient(Svc)) {
+                return;
+            }
             const [pkgName, name] = GnatGrpc._splitServiceKey(path);
             arr.push({pkg: pkgName, name, Svc});
             this._registerSvc(path, Svc);

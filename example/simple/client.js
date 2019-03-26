@@ -29,24 +29,24 @@ const {PORT} = config;
 
     const meta = new grpcClient.Metadata();
     meta.set('key', 'value');
-    // const ret = await service.sayHello(
-    //     {
-    //         m: {reply: {message: '11'}},
-    //         name: 'World',
-    //         gender: 'FEMALE',
-    //         strArr: ['1', '2'],
-    //         strValArr: ['1', '2'],
-    //         boolVal: false,
-    //         time: '2018-05-12'
-    //     },
-    //     meta
-    // );
-    // const ret2 = await service2.sayHello({name: null});
-    // const ret3 = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta, {});
-    //
-    // console.log('Greeting:', ret);
-    // console.log('Greeting again:', ret2);
-    // console.log('Greeting again:', ret3);
+    const ret = await service.sayHello(
+        {
+            m: {reply: {message: '11'}},
+            name: 'World',
+            gender: 'FEMALE',
+            strArr: ['1', '2'],
+            strValArr: ['1', '2'],
+            boolVal: false,
+            time: '2018-05-12'
+        },
+        meta
+    );
+    const ret2 = await service2.sayHello({name: null});
+    const ret3 = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta, {});
+
+    console.log('Greeting:', ret);
+    console.log('Greeting again:', ret2);
+    console.log('Greeting again:', ret3);
 
     try {
         await service.throwAnErr({name: 'WrongName'});
@@ -57,4 +57,14 @@ const {PORT} = config;
         console.log(e.toString());
         console.error(e);
     }
+
+    setInterval(async () => {
+        console.log('calling');
+        try {
+            const ret4 = await service.sayHello({m: {reply: {message: '11'}}, name: 'World', gender: 'FEMALE'}, meta, {});
+            console.log(ret4);
+        } catch (e) {
+            console.error(e);
+        }
+    }, 10000);
 })().catch(e => console.error(e.stack));
