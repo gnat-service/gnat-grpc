@@ -32,8 +32,7 @@
   },
   "dependencies": {
     "lodash.clone": "^4.5.0",
-    "lodash.get": "^4.4.2",
-    "request": "^2.85.0"
+    "lodash.get": "^4.4.2"
   },
   "devDependencies": {
     "@grpc/grpc-js": "^0.3.6",
