@@ -174,7 +174,7 @@ class Client extends GG {
             const meta = Object.assign({}, metadata, opts.metadata);
             const callOpts = Object.assign({}, callOptions, opts.callOptions);
             promises.push(
-                client.checkout(Object.assign({bindPath, credentials}, opts, meta, callOpts))
+                client.checkout(Object.assign({bindPath, credentials}, opts), meta, callOpts)
             );
         }
         await Promise.all(promises);
@@ -186,7 +186,7 @@ class Client extends GG {
         for (let opts of services) {
             const meta = Object.assign({}, metadata, opts.metadata);
             const callOpts = Object.assign({}, callOptions, opts.callOptions);
-            client.checkoutSync(Object.assign({bindPath, credentials}, opts, meta, callOpts));
+            client.checkoutSync(Object.assign({bindPath, credentials}, opts), meta, callOpts);
         }
         return client;
     }

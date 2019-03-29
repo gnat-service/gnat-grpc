@@ -8,7 +8,7 @@ const Client = require('../client');
 const PATH = require('path');
 const get = require('lodash.get');
 const {expect} = require('chai');
-const {random} = require('faker');
+const {random, lorem} = require('faker');
 
 const protoLoader = require('@grpc/proto-loader');
 const grpcClient = require('@grpc/grpc-js');
@@ -240,6 +240,7 @@ describe('GnatGrpc', () => {
         let service;
         let asserts = [];
         const sayHello = function (...args) {
+            console.trace('sayHello');
             asserts.forEach(cb => cb.call(this, ...args));
             const {name, position = 'DEVELOPER'} = args[0];
             return {message: `Hello ${name}`, position};
@@ -275,7 +276,7 @@ describe('GnatGrpc', () => {
                 hello_proto2.Greeter2.service,
                 {
                     sayHello: (call, callback) =>
-                        callback(null, sayHello(call.request))
+                        callback(null, sayHello(call.request, call))
                 }
             );
             server.start();
@@ -373,6 +374,50 @@ describe('GnatGrpc', () => {
                     expect(ret).to.have.property('message').which.equal(`Hello ${name}`);
                 }))
             );
+
+            context('with client side preset metadata', function () {
+                let configedClient;
+                let metaVal;
+                beforeEach(async () => {
+                    metaVal = lorem.word();
+                    configedClient = await Client.checkoutServices({
+                        bindPath: `localhost:${PORT}`,
+                        services: [
+                            {
+                                // Cover the parent level `bindPath`.
+                                // bindPath: `localhost:${PORT}`,
+                                filename: 'helloworld.proto'
+                            },
+                            {filename: 'helloworld2.proto'},
+                        ],
+                        metadata: {
+                            key: metaVal
+                        }
+                    });
+                });
+                afterEach(() => configedClient.close());
+                afterEach(() => {
+                    asserts = [];
+                });
+
+                it('server side should receive preset metadata', function () {
+                    return Promise.all([
+                        'gnat.helloworld.Greeter',
+                        'gnat.helloworld2.Greeter2'
+                    ].map(async key => {
+                        asserts = [(params, unaryCall) => {
+                            expect(params).to.have.property('name').which.be.a('string');
+                            expect(unaryCall).to.have.property('metadata').which.be.an('object');
+                            const meta = unaryCall.metadata.getMap();
+                            expect(meta).to.have.property('key', metaVal);
+                        }];
+                        const service = configedClient.getService(key);
+                        const name = random.word();
+                        const ret = await service.sayHello({name});
+                        expect(ret).to.have.property('message').which.equal(`Hello ${name}`);
+                    }))
+                });
+            });
         });
 
         context('.checkoutServicesSync()', () => {
