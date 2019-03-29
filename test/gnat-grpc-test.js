@@ -240,7 +240,6 @@ describe('GnatGrpc', () => {
         let service;
         let asserts = [];
         const sayHello = function (...args) {
-            console.trace('sayHello');
             asserts.forEach(cb => cb.call(this, ...args));
             const {name, position = 'DEVELOPER'} = args[0];
             return {message: `Hello ${name}`, position};
@@ -264,7 +263,6 @@ describe('GnatGrpc', () => {
                         try {
                             throwAnErr(call.request);
                         } catch (e) {
-                            console.log(e);
                             const metadata = new grpc.Metadata();
                             metadata.set('gnat-grpc-error-code', `20000`);
                             callback(Server._escapedError(e), null, metadata);
@@ -466,7 +464,6 @@ describe('GnatGrpc', () => {
                     let p;
                     const assertFn = function (req, call) {
                         p = (async () => {
-                            console.log(this);
                             expect(call).to.have.property('metadata')
                                 .to.be.an.instanceOf(grpc.Metadata);
                             const map = call.metadata.getMap();
@@ -733,7 +730,7 @@ describe('GnatGrpc', () => {
             } catch (e) {
                 err = e;
             }
-            console.log(err);
+
             expect(err).to.have.property('code').that.equal(20000);
             expect(err).to.have.property('details')
                 .that.equal(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
