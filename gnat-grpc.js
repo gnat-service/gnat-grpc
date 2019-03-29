@@ -96,7 +96,7 @@ class GnatGrpc extends EventEmitter {
     }
 
     setDefaultAuthority (authority) {
-        if (this.grpc.default_authority) {
+        if (this.grpc) {
             this.grpc.default_authority = authority;
         }
     }
