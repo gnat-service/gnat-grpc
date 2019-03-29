@@ -149,12 +149,12 @@ class GnatGrpc extends EventEmitter {
         );
     }
 
-    static _execDefinitionFn (name, opts) {
+    static _getLoadingParams (opts) {
         opts = optsHandler(opts);
         let loadOpts = config.defaultLoaderOpts ?
             Object.assign(config.defaultLoaderOpts, opts.loadOpts) :
             opts.loadOpts;
-        return config.protoLoader[name](opts.protoPath, loadOpts);
+        return {protoPath: opts.protoPath, loadOpts};
     }
 
     _parseDefPkg (pkg) {
@@ -175,12 +175,14 @@ class GnatGrpc extends EventEmitter {
     }
 
     _loadDefinitionSync (opts) {
-        const pkg = GnatGrpc._execDefinitionFn('loadSync', opts);
+        const {protoPath, loadOpts} = GnatGrpc._getLoadingParams(opts);
+        const pkg = config.protoLoader.loadSync(protoPath, loadOpts);
         return this._parseDefPkg(pkg);
     }
 
     async _loadDefinition (opts) {
-        const pkg = await GnatGrpc._execDefinitionFn('load', opts);
+        const {protoPath, loadOpts} = GnatGrpc._getLoadingParams(opts);
+        const pkg = await config.protoLoader.load(protoPath, loadOpts);
         return this._parseDefPkg(pkg);
     }
 }

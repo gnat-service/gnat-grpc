@@ -119,7 +119,7 @@ class Client extends GG {
     _checkout (opts, metadata, callOptions, svcMapping) {
         const arr = svcMapping.map(({pkg, name, Svc}) => {
             const key = GG._getServiceKey({pkgName: pkg, service: name});
-            const client = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure());
+            const client = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), opts.channelOptions);
             this.rawClients[key] = client;
 
             const wrappedClient = this._wrapMethods(client, Svc, key);
@@ -167,27 +167,33 @@ class Client extends GG {
         GG.on('client', event, handler);
     }
 
-    static async checkoutServices ({bindPath, credentials, services, metadata, callOptions, events}) {
+    static _checkoutServices ({bindPath, credentials, channelOptions, services, metadata, callOptions, events}, fn) {
         const client = new Client({events});
-        const promises = [];
-        for (let opts of services) {
-            const meta = Object.assign({}, metadata, opts.metadata);
-            const callOpts = Object.assign({}, callOptions, opts.callOptions);
-            promises.push(
-                client.checkout(Object.assign({bindPath, credentials}, opts), meta, callOpts)
+        const result = [];
+        for (let svcOpts of services) {
+            const meta = Object.assign({}, metadata, svcOpts.metadata);
+            const callOpts = Object.assign({}, callOptions, svcOpts.callOptions);
+            result.push(
+                fn(client, Object.assign({bindPath, credentials, channelOptions}, svcOpts), meta, callOpts)
             );
         }
+        return {client, services: result};
+    }
+
+    static async checkoutServices (opts) {
+        const {client, services: promises} = this._checkoutServices(
+            opts,
+            (self, ...args) => self.checkout(...args)
+        );
         await Promise.all(promises);
         return client;
     }
 
-    static checkoutServicesSync ({bindPath, credentials, services, metadata, callOptions, events}) {
-        const client = new Client({events});
-        for (let opts of services) {
-            const meta = Object.assign({}, metadata, opts.metadata);
-            const callOpts = Object.assign({}, callOptions, opts.callOptions);
-            client.checkoutSync(Object.assign({bindPath, credentials}, opts), meta, callOpts);
-        }
+    static checkoutServicesSync (opts) {
+        const {client} = this._checkoutServices(
+            opts,
+            (self, ...args) => self.checkoutSync(...args)
+        );
         return client;
     }
 }
