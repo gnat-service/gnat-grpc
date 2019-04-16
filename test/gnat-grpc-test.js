@@ -710,7 +710,10 @@ describe('GnatGrpc', () => {
                         filename: 'helloworld.proto'
                     },
                     {filename: 'helloworld2.proto'},
-                ]
+                ],
+                channelOptions: {
+                    'grpc.default_authority': 'grpc.io'
+                }
             });
         });
 

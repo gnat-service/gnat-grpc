@@ -27,6 +27,8 @@ class Client extends GG {
         super(...args);
         this.clients = {};
         this.rawClients = {};
+        this._clients = {};
+        this._rawClients = {};
         this[containerSym] = {};
         this._loadPlugins();
         this.grpc = Client.grpc;
@@ -106,7 +108,7 @@ class Client extends GG {
         if (obj instanceof Metadata) {
             [metadata, obj] = [obj, null];
         } else {
-            metadata = new Metadata()
+            metadata = new Metadata();
         }
         const ctx = this[containerSym][key];
         obj = Object.assign({service: key, 'x-gnat-grpc-service': key}, ctx.metadata, obj);
@@ -119,13 +121,42 @@ class Client extends GG {
     _checkout (opts, metadata, callOptions, svcMapping) {
         const arr = svcMapping.map(({pkg, name, Svc}) => {
             const key = GG._getServiceKey({pkgName: pkg, service: name});
-            const client = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), opts.channelOptions);
-            this.rawClients[key] = client;
+            const o = {metadata, callOptions};
+            this[containerSym][key] = o;
 
-            const wrappedClient = this._wrapMethods(client, Svc, key);
-            this.clients[key] = wrappedClient;
-            this[containerSym][key] = {rawClient: client, client: wrappedClient, metadata, callOptions};
-            return wrappedClient;
+            const getSvcClient = () => {
+                let c = this._rawClients[key];
+                if (!c) {
+                    c = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), opts.channelOptions);
+                    this._rawClients[key] = c;
+                }
+                return c;
+            };
+            const getWrappedClient = () => {
+                let c = this._clients[key];
+                if (!c) {
+                    const svcClient = this.rawClients[key];
+                    c = this._wrapMethods(svcClient, Svc, key);
+                    this._clients[key] = c;
+                }
+                return c;
+            };
+
+            Object.defineProperty(this.rawClients, key, {get: getSvcClient});
+            Object.defineProperty(this.clients, key, {get: getWrappedClient});
+            Object.defineProperties(o, {
+                rawClient: {
+                    get () {
+                        return this.rawClients[key];
+                    }
+                },
+                client: {
+                    get () {
+                        this.clients[key];
+                    }
+                }
+            });
+            return getWrappedClient;
         });
 
         const result = arr.length === 1 ? arr[0] : arr;
@@ -133,16 +164,25 @@ class Client extends GG {
         return result;
     }
 
-    checkoutSync (opts, metadata = {}, callOptions) {
+    checkoutSyncLazy (opts, metadata = {}, callOptions) {
         checkoutOptsChecker(opts);
         const svcMapping = this._loadDefinitionSync(opts);
         return this._checkout(opts, metadata, callOptions, svcMapping);
     }
 
-    async checkout (opts, metadata = {}, callOptions) {
+    async checkoutLazy (opts, metadata = {}, callOptions) {
         checkoutOptsChecker(opts);
         const svcMapping = await this._loadDefinition(opts);
         return this._checkout(opts, metadata, callOptions, svcMapping);
+    }
+
+    checkoutSync (...args) {
+        return this.checkoutSyncLazy(...args)();
+    }
+
+    async checkout (...args) {
+        const fn = await this.checkoutLazy(...args);
+        return fn();
     }
 
     getService (opts) {
@@ -167,8 +207,12 @@ class Client extends GG {
         GG.on('client', event, handler);
     }
 
+    static getInstance (...args) {
+        return new Client(...args);
+    }
+
     static _checkoutServices ({bindPath, credentials, channelOptions, services, metadata, callOptions, events}, fn) {
-        const client = new Client({events});
+        const client = this.getInstance({events});
         const result = [];
         for (let svcOpts of services) {
             const meta = Object.assign({}, metadata, svcOpts.metadata);
@@ -183,7 +227,7 @@ class Client extends GG {
     static async checkoutServices (opts) {
         const {client, services: promises} = this._checkoutServices(
             opts,
-            (self, ...args) => self.checkout(...args)
+            (self, ...args) => self.checkoutLazy(...args)
         );
         await Promise.all(promises);
         return client;
@@ -192,7 +236,7 @@ class Client extends GG {
     static checkoutServicesSync (opts) {
         const {client} = this._checkoutServices(
             opts,
-            (self, ...args) => self.checkoutSync(...args)
+            (self, ...args) => self.checkoutSyncLazy(...args)
         );
         return client;
     }
