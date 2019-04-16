@@ -121,6 +121,11 @@ class Client extends GG {
     _checkout (opts, metadata, callOptions, svcMapping) {
         const arr = svcMapping.map(({pkg, name, Svc}) => {
             const key = GG._getServiceKey({pkgName: pkg, service: name});
+
+            if (this.clients.hasOwnProperty(key)) {
+                return;
+            }
+
             const o = {metadata, callOptions};
             this[containerSym][key] = o;
 
