@@ -21,29 +21,30 @@ const checkoutOptsChecker = opts => {
 };
 
 class Client extends GG {
-    constructor (...args) {
-        !args.length && args.push({});
-        args[0].isServer = false;
-        super(...args);
+    constructor (opts = {}, ...args) {
+        opts.isServer = false;
+        super(opts, ...args);
         this.clients = {};
         this.rawClients = {};
         this._clients = {};
-        this._rawClients = {};
         this[containerSym] = {};
         this._loadPlugins();
         this.grpc = Client.grpc;
+        this._channelsRefresher = null;
     }
 
-    _wrapMethods (client, Svc, key) {
+    _wrapMethods (key, Svc) {
         const self = this;
         const container = {};
         const isRpc = (attrs) =>
             ['path', 'originalName'].every(key => attrs.hasOwnProperty(key));
         const {service} = Svc;
+        const ctx = this[containerSym][key];
+        const svcClient = ctx.retrieveChannel();
 
         Object.keys(service).forEach(name => {
             const attrs = service[name];
-            const method = client[name];
+            const method = svcClient[name];
             if (!isRpc(attrs) || !isFn(method)) {
                 return;
             }
@@ -55,6 +56,7 @@ class Client extends GG {
                 container,
                 {
                     [name] (...args) {
+                        const svcClient = ctx.retrieveChannel();
                         const len = args.length;
                         if (!len) {
                             args = [{}];
@@ -76,12 +78,12 @@ class Client extends GG {
 
                         const callback = args[len - 1];
                         if (len && isFn(callback)) {
-                            const result = client[name](...args);
+                            const result = svcClient[name](...args);
                             self.emit('response', self, result);
                             return result;
                         }
                         return new Promise((resolve, reject) => {
-                            client[name](...args, (err, res, ...argus) => {
+                            svcClient[name](...args, (err, res, ...argus) => {
                                 if (err) {
                                     reject(GG._safeUnescapedError(err));
                                 } else {
@@ -118,6 +120,67 @@ class Client extends GG {
         return metadata;
     }
 
+    _openChannel (key, Svc, opts) {
+        const ctx = this[containerSym][key];
+        let c = ctx.channel;
+        if (!c) {
+            c = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), opts.channelOptions);
+            ctx.channel = c;
+            this[containerSym][key].openedAt = Date.now();
+        }
+        return c;
+    }
+
+    _immediatelyRefresh (ctx) {
+        if (typeof ctx === 'string') {
+            ctx = this[containerSym][ctx];
+        }
+        if (!ctx) {
+            return;
+        }
+
+        const {channel} = ctx;
+        ctx.channel = null;
+        ctx.openedAt = null;
+
+        channel && this.shutdownLegacyAfterMs &&
+            setTimeout(() => this._closeChannel(channel), this.shutdownLegacyAfterMs);
+    }
+
+    startRefreshingChannels (opts) {
+        this._stopRefreshChannels();
+
+        const defOpts = {
+            shutdownLegacyAfterMs: 60000,
+            refreshAfterMs: 240000,
+            checkLegacyIntervalMs: 30000,
+        };
+        const options = Object.assign(defOpts, this, opts);
+        Object.assign(this, options);
+
+        const container = this[containerSym];
+        const now = Date.now();
+        this._channelsRefresher = setInterval(() => {
+            Object.keys(container).forEach(key => {
+                const ctx = container[key];
+                const {openedAt} = ctx;
+                if (!openedAt) {
+                    return;
+                }
+                if (now - openedAt > this.refreshAfterMs) {
+                    this._immediatelyRefresh(ctx);
+                }
+            });
+        }, this.checkLegacyIntervalMs);
+    }
+
+    _stopRefreshChannels () {
+        if (this._channelsRefresher === null) {
+            clearInterval(this._channelsRefresher);
+            this._channelsRefresher = null;
+        }
+    }
+
     _checkout (opts, metadata, callOptions, svcMapping) {
         const arr = svcMapping.map(({pkg, name, Svc}) => {
             const key = GG._getServiceKey({pkgName: pkg, service: name});
@@ -129,39 +192,23 @@ class Client extends GG {
             const o = {metadata, callOptions};
             this[containerSym][key] = o;
 
-            const getSvcClient = () => {
-                let c = this._rawClients[key];
+            const retrieveChannel = () => this._openChannel(key, Svc, opts);
+            const retrieveWrappedChannel = () => {
+                const ctx = this[containerSym][key];
+                let c = ctx.wrappedChannel;
                 if (!c) {
-                    c = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), opts.channelOptions);
-                    this._rawClients[key] = c;
+                    c = this._wrapMethods(key, Svc);
+                    ctx.wrappedChannel = c;
                 }
                 return c;
             };
-            const getWrappedClient = () => {
-                let c = this._clients[key];
-                if (!c) {
-                    const svcClient = this.rawClients[key];
-                    c = this._wrapMethods(svcClient, Svc, key);
-                    this._clients[key] = c;
-                }
-                return c;
-            };
+            o.retrieveChannel = retrieveChannel;
+            o.retrieveWrappedChannel = retrieveWrappedChannel;
 
-            Object.defineProperty(this.rawClients, key, {get: getSvcClient});
-            Object.defineProperty(this.clients, key, {get: getWrappedClient});
-            Object.defineProperties(o, {
-                rawClient: {
-                    get () {
-                        return this.rawClients[key];
-                    }
-                },
-                client: {
-                    get () {
-                        this.clients[key];
-                    }
-                }
-            });
-            return getWrappedClient;
+            Object.defineProperty(this.rawClients, key, {get: retrieveChannel});
+            Object.defineProperty(this.clients, key, {get: retrieveWrappedChannel});
+
+            return retrieveWrappedChannel;
         });
 
         const result = arr.length === 1 ? arr[0] : arr;
@@ -195,13 +242,29 @@ class Client extends GG {
         return this.clients[key];
     }
 
-    _close () {
-        Object.keys(this.rawClients).forEach(key => {
-            const c = this.rawClients[key];
-            if (c && isFn(c.close)) {
-                c.close();
+    _closeChannel (channel) {
+        const close = () => {
+            try {
+                channel.close();
+            } catch (e) {
+                // do nothing
             }
-        });
+        };
+        if (typeof channel === 'string') {
+            const ctx = this[containerSym][channel];
+            const {openedAt} = ctx;
+            channel = ctx.channel;
+            openedAt && close();
+        } else {
+            close();
+        }
+    }
+
+    _close () {
+        const container = this[containerSym];
+        Object.keys(container).forEach(key =>
+            this._closeChannel(key)
+        );
     }
 
     static get grpc () {

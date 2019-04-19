@@ -18,9 +18,9 @@ const ggConf = {
     protoLoader,
     root: PATH.join(__dirname, 'proto'),
 };
-if (Math.random() > .5) {
-    ggConf.grpcClient = grpcClient;
-}
+// if (Math.random() > .5) {
+//     ggConf.grpcClient = grpcClient;
+// }
 
 config._config(ggConf);
 const {grpc} = config;
@@ -717,8 +717,8 @@ describe('GnatGrpc', () => {
             });
         });
 
-        afterEach(() => client.close());
-        afterEach(done => server.server.tryShutdown(done));
+        afterEach('tests done, shutdown client channels', () => client.close());
+        afterEach('tests done, shutdown server', done => server.server.tryShutdown(done));
 
         it('when server side throws error', async () => {
             const name = random.word();
@@ -747,9 +747,45 @@ describe('GnatGrpc', () => {
             asserts.push((args) => {
                 expect(args).to.deep.equal({name, position: 'ADMIN', gender});
             });
-            const service = client.getService('gnat.helloworld.Greeter');
+            let service = client.getService('gnat.helloworld.Greeter');
             const result = await service.sayHello({name, gender});
+            service = client.getService('gnat.helloworld.Greeter');
+            await service.sayHello({name, gender});
             expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
+        });
+
+        context('when channel refreshed', function () {
+            let rawClients;
+            let service;
+            let shutdownLegacyAfterMs;
+            const key = 'gnat.helloworld.Greeter';
+
+            const assertion = async (name, gender) => {
+                asserts = [(args) => {
+                    expect(args).to.deep.equal({name, position: 'ADMIN', gender});
+                }];
+                rawClients.push(client.rawClients[key]);
+                const result = await service.sayHello({name, gender});
+                expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
+            };
+            beforeEach(() => {
+                rawClients = [];
+                service = client.getService(key);
+                shutdownLegacyAfterMs = client.shutdownLegacyAfterMs;
+                client.shutdownLegacyAfterMs = 1;
+            });
+            afterEach(() => {
+                client.shutdownLegacyAfterMs = shutdownLegacyAfterMs;
+            });
+            it('should still working', async () => {
+                await assertion(random.word(), 'FEMALE');
+                client._immediatelyRefresh(key);
+                await assertion(random.word(), 'MALE');
+                client._immediatelyRefresh(key);
+
+                expect(rawClients[0]).to.not.equal(rawClients[1]);
+                expect(rawClients[0]).to.deep.equal(rawClients[1]);
+            });
         });
     });
 });

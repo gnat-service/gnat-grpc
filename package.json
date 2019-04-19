@@ -1,6 +1,6 @@
 {
   "name": "gnat-grpc",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "A simple grpc sync wrapper.",
   "main": "index.js",
   "author": "leaf4monkey <joc98@163.com>",
