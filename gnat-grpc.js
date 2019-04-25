@@ -39,7 +39,6 @@ const needEscapeErr = () => {
         // grpc 1.17 或以下版本不能正确处理包含中文的字符串的长度，导致字串截断.
         // 经测试发现该问题已经在 1.18 以上版本中得到修复
         const {version} = require('grpc/package.json');
-        console.log({version})
         return /^[01]\.(\d|1[0-7])\./.test(version); // 判断 grpc 版本是否为 1.17 或以下
     } catch (e) {
         return false;
@@ -89,7 +88,6 @@ class GnatGrpc extends EventEmitter {
     }
 
     static _safeEscapedError (err) {
-        console.log({n: needEscapeErr()})
         if (GnatGrpc._isCustomErr(err) && needEscapeErr()) {
             err = GnatGrpc._escapedError(err);
         }

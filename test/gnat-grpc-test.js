@@ -329,7 +329,7 @@ describe('GnatGrpc', () => {
                 expect(ret2).to.have.property('message').which.equal(`Hello ${name2}`);
             });
 
-            it.only('should catch the error threw by server', async () => {
+            it('should catch the error threw by server', async () => {
                 let ret;
                 let err;
                 const name = random.word();
