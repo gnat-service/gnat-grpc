@@ -29,6 +29,7 @@ class Client extends GG {
         this._clients = {};
         this[containerSym] = {};
         this._loadPlugins();
+        this.waitClientReadyForMs = opts.waitClientReadyForMs || 0;
         this.grpc = Client.grpc;
         this._channelsRefresher = null;
     }
@@ -77,21 +78,42 @@ class Client extends GG {
                         self.emit('request', self, ...args);
 
                         const callback = args[len - 1];
-                        if (len && isFn(callback)) {
-                            const result = svcClient[name](...args);
-                            self.emit('response', self, result);
-                            return result;
-                        }
-                        return new Promise((resolve, reject) => {
-                            svcClient[name](...args, (err, res, ...argus) => {
-                                if (err) {
-                                    reject(GG._safeUnescapedError(err));
-                                } else {
-                                    self.emit('response', self, res, ...argus);
-                                    resolve(res);
-                                }
+
+                        const resHandler = (callback, err, res, ...argus) => {
+                            if (err) {
+                                err = GG._safeUnescapedError(err);
+                                self.emit('responseError', self, err, ...argus);
+                            } else {
+                                self.emit('response', self, res, ...argus);
+                            }
+                            callback(err, res, ...argus);
+                        };
+
+                        const exec = () => {
+                            if (len && isFn(callback)) {
+                                args[len - 1] = (...argus) =>
+                                    resHandler(callback, ...argus);
+                                return svcClient[name](...args);
+                            }
+                            return new Promise((resolve, reject) => {
+                                svcClient[name](...args, (...argus) =>
+                                    resHandler((err, res) => {
+                                        err ? reject(err) : resolve(res)
+                                    }, ...argus)
+                                );
                             });
-                        });
+                        };
+
+                        if (self.waitClientReadyForMs) {
+                            const p = new Promise((resolve) => {
+                                svcClient.waitForReady(self.waitClientReadyForMs, err => {
+                                    self.emit('connectionReady', err);
+                                    resolve();
+                                });
+                            });
+                            return p.then(exec);
+                        }
+                        return exec();
                     }
                 }
             );
@@ -279,8 +301,9 @@ class Client extends GG {
         return new Client(...args);
     }
 
-    static _checkoutServices ({bindPath, credentials, channelOptions, services, metadata, callOptions, events}, fn) {
-        const client = this.getInstance({events});
+    static _checkoutServices (opts, fn) {
+        const {bindPath, credentials, channelOptions, services, metadata, callOptions} = opts;
+        const client = this.getInstance(opts);
         const result = [];
         for (let svcOpts of services) {
             const meta = Object.assign({}, metadata, svcOpts.metadata);

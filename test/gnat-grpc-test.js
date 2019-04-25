@@ -9,6 +9,7 @@ const PATH = require('path');
 const get = require('lodash.get');
 const {expect} = require('chai');
 const {random, lorem} = require('faker');
+const {spy} = require('sinon');
 
 const protoLoader = require('@grpc/proto-loader');
 const grpcClient = require('@grpc/grpc-js');
@@ -723,10 +724,11 @@ describe('GnatGrpc', () => {
         it('when server side throws error', async () => {
             const name = random.word();
             const gender = 'FEMALE';
+            const key = 'gnat.helloworld.Greeter';
             asserts.push((args) => {
                 expect(args).to.deep.equal({name, position: 'ADMIN', gender});
             });
-            const service = client.getService('gnat.helloworld.Greeter');
+            const service = client.getService(key);
             let err;
             try {
                 await service.throwAnErr({name, gender});
@@ -755,7 +757,6 @@ describe('GnatGrpc', () => {
         });
 
         context('when channels refreshed', function () {
-            let rawClients;
             let service;
             let shutdownLegacyAfterMs;
             const key = 'gnat.helloworld.Greeter';
@@ -764,12 +765,15 @@ describe('GnatGrpc', () => {
                 asserts = [(args) => {
                     expect(args).to.deep.equal({name, position: 'ADMIN', gender});
                 }];
-                rawClients.push(client.rawClients[key]);
+                await new Promise((resolve, reject) => {
+                    client.rawClients[key].waitForReady(Date.now() + 1000, (err) => {
+                        err ? reject(err) : resolve();
+                    });
+                });
                 const result = await service.sayHello({name, gender});
                 expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
             };
             beforeEach(() => {
-                rawClients = [];
                 service = client.getService(key);
                 shutdownLegacyAfterMs = client.shutdownLegacyAfterMs;
                 client.shutdownLegacyAfterMs = 1;
@@ -779,12 +783,93 @@ describe('GnatGrpc', () => {
             });
             it('should still working', async () => {
                 await assertion(random.word(), 'FEMALE');
+                const beforeRefreshed = client.rawClients[key];
+                await assertion(random.word(), 'FEMALE');
                 client._immediatelyRefresh(key);
+                const afterRefreshed = client.rawClients[key];
                 await assertion(random.word(), 'MALE');
                 client._immediatelyRefresh(key);
 
-                expect(rawClients[0]).to.not.equal(rawClients[1]);
-                expect(rawClients[0]).to.deep.equal(rawClients[1]);
+                expect(beforeRefreshed).to.not.equal(afterRefreshed);
+                expect(beforeRefreshed).to.deep.equal(afterRefreshed);
+            });
+        });
+
+        context('wait connect ready', function () {
+            let anotherClient;
+            let connectionErrAssertions = [];
+            const key = 'gnat.helloworld.Greeter';
+            const getClient = ms =>
+                Client.checkoutServicesSync({
+                    bindPath: `localhost:${PORT}`,
+                    waitClientReadyForMs: ms ? (Date.now() + ms) : ms,
+                    services: [
+                        {filename: 'helloworld.proto'},
+                        {filename: 'helloworld2.proto'},
+                    ],
+                    events: {
+                        connectionReady (err) {
+                            connectionErrAssertions.forEach(f => f(err));
+                        }
+                    },
+                    channelOptions: {
+                        'grpc.default_authority': 'grpc.io'
+                    }
+                });
+            afterEach(() => {
+                connectionErrAssertions = [];
+                anotherClient.close();
+            });
+            context('wait no time', function () {
+                beforeEach(() => {
+                    anotherClient = getClient(0);
+                });
+                it('not wait client ready at all', async () => {
+                    const cbSpy = spy();
+                    connectionErrAssertions.push(cbSpy);
+                    service = anotherClient.getService(key);
+                    const name = lorem.word();
+                    const gender = 'FEMALE';
+                    const result = await service.sayHello({name, gender});
+                    expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
+                    expect(cbSpy.calledOnce).to.equal(false);
+                });
+            });
+            context('wait few time', function () {
+                beforeEach(() => {
+                    anotherClient = getClient(1);
+                });
+                it('fire `connectionReady` event with a deadline exceed error by 1 time', async () => {
+                    const cb = (err) => {
+                        expect(err).to.be.an.instanceOf(Error).with.property('message', 'Failed to connect before the deadline');
+                    };
+                    const cbSpy = spy(cb);
+                    connectionErrAssertions.push(cbSpy);
+                    service = anotherClient.getService(key);
+                    const name = lorem.word();
+                    const gender = 'FEMALE';
+                    const result = await service.sayHello({name, gender});
+                    expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
+                    expect(cbSpy.calledOnce).to.equal(true);
+                });
+            });
+            context('wait enough time', function () {
+                beforeEach(() => {
+                    anotherClient = getClient(1000);
+                });
+                it('fire `connectionReady` without error by 1 time', async () => {
+                    const cb = (err) => {
+                        expect(err).to.equal(undefined);
+                    };
+                    const cbSpy = spy(cb);
+                    connectionErrAssertions.push(cbSpy);
+                    service = anotherClient.getService(key);
+                    const name = lorem.word();
+                    const gender = 'FEMALE';
+                    const result = await service.sayHello({name, gender});
+                    expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
+                    expect(cbSpy.calledOnce).to.equal(true);
+                });
             });
         });
     });

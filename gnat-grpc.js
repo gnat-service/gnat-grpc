@@ -91,16 +91,6 @@ class GnatGrpc extends EventEmitter {
         return config.has('grpc') ? config.grpc : config.grpcClient;
     }
 
-    static setDefaultAuthority (authority) {
-        this.grpc.default_authority = authority;
-    }
-
-    setDefaultAuthority (authority) {
-        if (this.grpc) {
-            this.grpc.default_authority = authority;
-        }
-    }
-
     static _safeUnescapedError (err) {
         const {UNKNOWN} = GnatGrpc.grpc.status;
         const errCode = err.metadata && err.metadata.get('gnat-grpc-error-code');
