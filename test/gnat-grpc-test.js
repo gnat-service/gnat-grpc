@@ -803,7 +803,7 @@ describe('GnatGrpc', () => {
             const getClient = ms =>
                 Client.checkoutServicesSync({
                     bindPath: `localhost:${PORT}`,
-                    waitClientReadyForMs: ms ? (Date.now() + ms) : ms,
+                    waitClientReadyForMs: ms,
                     services: [
                         {filename: 'helloworld.proto'},
                         {filename: 'helloworld2.proto'},

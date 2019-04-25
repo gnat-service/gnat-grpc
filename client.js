@@ -106,7 +106,7 @@ class Client extends GG {
 
                         if (self.waitClientReadyForMs) {
                             const p = new Promise((resolve) => {
-                                svcClient.waitForReady(self.waitClientReadyForMs, err => {
+                                svcClient.waitForReady(Date.now() + self.waitClientReadyForMs, err => {
                                     self.emit('connectionReady', err);
                                     resolve();
                                 });
