@@ -754,7 +754,7 @@ describe('GnatGrpc', () => {
             expect(result).to.deep.equal({message: `Hello ${name}`, position: 'ADMIN'});
         });
 
-        context('when channel refreshed', function () {
+        context('when channels refreshed', function () {
             let rawClients;
             let service;
             let shutdownLegacyAfterMs;

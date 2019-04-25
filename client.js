@@ -40,7 +40,7 @@ class Client extends GG {
             ['path', 'originalName'].every(key => attrs.hasOwnProperty(key));
         const {service} = Svc;
         const ctx = this[containerSym][key];
-        const svcClient = ctx.retrieveChannel();
+        const svcClient = ctx.retrieveClient();
 
         Object.keys(service).forEach(name => {
             const attrs = service[name];
@@ -56,7 +56,7 @@ class Client extends GG {
                 container,
                 {
                     [name] (...args) {
-                        const svcClient = ctx.retrieveChannel();
+                        const svcClient = ctx.retrieveClient();
                         const len = args.length;
                         if (!len) {
                             args = [{}];
@@ -120,12 +120,12 @@ class Client extends GG {
         return metadata;
     }
 
-    _openChannel (key, Svc, opts) {
+    _initRawClient (key, Svc, opts) {
         const ctx = this[containerSym][key];
-        let c = ctx.channel;
+        let c = ctx.client;
         if (!c) {
             c = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), opts.channelOptions);
-            ctx.channel = c;
+            ctx.client = c;
             this[containerSym][key].openedAt = Date.now();
         }
         return c;
@@ -139,12 +139,12 @@ class Client extends GG {
             return;
         }
 
-        const {channel} = ctx;
-        ctx.channel = null;
+        const {client} = ctx;
+        ctx.client = null;
         ctx.openedAt = null;
 
-        channel && this.shutdownLegacyAfterMs &&
-            setTimeout(() => this._closeChannel(channel), this.shutdownLegacyAfterMs);
+        client && this.shutdownLegacyAfterMs &&
+            setTimeout(() => this._closeClient(client), this.shutdownLegacyAfterMs);
     }
 
     startRefreshingChannels (opts) {
@@ -192,23 +192,23 @@ class Client extends GG {
             const o = {metadata, callOptions};
             this[containerSym][key] = o;
 
-            const retrieveChannel = () => this._openChannel(key, Svc, opts);
-            const retrieveWrappedChannel = () => {
+            const retrieveClient = () => this._initRawClient(key, Svc, opts);
+            const retrieveWrappedClient = () => {
                 const ctx = this[containerSym][key];
-                let c = ctx.wrappedChannel;
+                let c = ctx.wrappedClient;
                 if (!c) {
                     c = this._wrapMethods(key, Svc);
-                    ctx.wrappedChannel = c;
+                    ctx.wrappedClient = c;
                 }
                 return c;
             };
-            o.retrieveChannel = retrieveChannel;
-            o.retrieveWrappedChannel = retrieveWrappedChannel;
+            o.retrieveClient = retrieveClient;
+            o.retrieveWrappedClient = retrieveWrappedClient;
 
-            Object.defineProperty(this.rawClients, key, {get: retrieveChannel});
-            Object.defineProperty(this.clients, key, {get: retrieveWrappedChannel});
+            Object.defineProperty(this.rawClients, key, {get: retrieveClient});
+            Object.defineProperty(this.clients, key, {get: retrieveWrappedClient});
 
-            return retrieveWrappedChannel;
+            return retrieveWrappedClient;
         });
 
         const result = arr.length === 1 ? arr[0] : arr;
@@ -242,18 +242,18 @@ class Client extends GG {
         return this.clients[key];
     }
 
-    _closeChannel (channel) {
+    _closeClient (client) {
         const close = () => {
             try {
-                channel.close();
+                client.close();
             } catch (e) {
                 // do nothing
             }
         };
-        if (typeof channel === 'string') {
-            const ctx = this[containerSym][channel];
+        if (typeof client === 'string') {
+            const ctx = this[containerSym][client];
             const {openedAt} = ctx;
-            channel = ctx.channel;
+            client = ctx.client;
             openedAt && close();
         } else {
             close();
@@ -263,7 +263,7 @@ class Client extends GG {
     _close () {
         const container = this[containerSym];
         Object.keys(container).forEach(key =>
-            this._closeChannel(key)
+            this._closeClient(key)
         );
     }
 
