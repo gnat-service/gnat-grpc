@@ -14,11 +14,12 @@ const cache = {
     CUSTOM_ERR_CODE_OFFSET: 100,
     logger: console,
     defaultLoaderOpts: null,
+    escapeErrorAnyway: false,
 };
 
 const getConfigured = name => {
     const o = cache[name];
-    if (!o) {
+    if ([null, undefined].includes(o)) {
         throw new Error(`\`${name}\` is not configured yet.`);
     }
     return o;
@@ -120,5 +121,8 @@ module.exports = {
     },
     get defaultLoaderOpts () {
         return getConfigured('defaultLoaderOpts');
+    },
+    get escapeErrorAnyway () {
+        return getConfigured('escapeErrorAnyway');
     }
 };

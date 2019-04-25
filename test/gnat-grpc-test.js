@@ -13,10 +13,12 @@ const {spy} = require('sinon');
 
 const protoLoader = require('@grpc/proto-loader');
 const grpcClient = require('@grpc/grpc-js');
+const protobufjs = require('protobufjs');
 
 const ggConf = {
     grpc: require('grpc'),
     protoLoader,
+    // protobufjs,
     root: PATH.join(__dirname, 'proto'),
 };
 // if (Math.random() > .5) {
@@ -838,7 +840,7 @@ describe('GnatGrpc', () => {
             });
             context('wait few time', function () {
                 beforeEach(() => {
-                    anotherClient = getClient(1);
+                    anotherClient = getClient(-1);
                 });
                 it('fire `connectionReady` event with a deadline exceed error by 1 time', async () => {
                     const cb = (err) => {

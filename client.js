@@ -231,11 +231,10 @@ class Client extends GG {
             Object.defineProperty(this.clients, key, {get: retrieveWrappedClient});
 
             return retrieveWrappedClient;
-        });
+        }).filter(s => s);
 
-        const result = arr.length === 1 ? arr[0] : arr;
         this.emit('postServicesReady', this, arr);
-        return result;
+        return arr;
     }
 
     checkoutSyncLazy (opts, metadata = {}, callOptions) {
@@ -251,11 +250,11 @@ class Client extends GG {
     }
 
     checkoutSync (...args) {
-        return this.checkoutSyncLazy(...args)();
+        return this.checkoutSyncLazy(...args)[0]();
     }
 
     async checkout (...args) {
-        const fn = await this.checkoutLazy(...args);
+        const [fn] = await this.checkoutLazy(...args);
         return fn();
     }
 

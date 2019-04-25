@@ -31,6 +31,20 @@ const optsHandler = opts => {
     return opts;
 };
 
+const needEscapeErr = () => {
+    if (config.escapeErrorAnyway) {
+        return true;
+    }
+    try {
+        // grpc 1.17 或以下版本不能正确处理包含中文的字符串的长度，导致字串截断.
+        // 经测试发现该问题已经在 1.18 以上版本中得到修复
+        const {version} = require('grpc/package.json');
+        return /^[01]\.(\d|1[0-7])\./.test(version); // 判断 grpc 版本是否为 1.17 或以下
+    } catch (e) {
+        return false;
+    }
+};
+
 class GnatGrpc extends EventEmitter {
     constructor ({events = [], isServer} = {}) {
         super();
@@ -74,7 +88,7 @@ class GnatGrpc extends EventEmitter {
     }
 
     static _safeEscapedError (err) {
-        if (GnatGrpc._isCustomErr(err)) {
+        if (GnatGrpc._isCustomErr(err) && needEscapeErr()) {
             err = GnatGrpc._escapedError(err);
         }
         return err;
@@ -87,20 +101,20 @@ class GnatGrpc extends EventEmitter {
         return err;
     }
 
-    static get grpc () {
-        return config.has('grpc') ? config.grpc : config.grpcClient;
-    }
-
     static _safeUnescapedError (err) {
         const {UNKNOWN} = GnatGrpc.grpc.status;
         const errCode = err.metadata && err.metadata.get('gnat-grpc-error-code');
         if (err.code === UNKNOWN && errCode && Array.isArray(errCode)) {
             err.code = parseInt(errCode[0], 10);
         }
-        if (GnatGrpc._isCustomErr(err)) {
+        if (GnatGrpc._isCustomErr(err) && needEscapeErr()) {
             err = GnatGrpc._unescapedError(err);
         }
         return err;
+    }
+
+    static get grpc () {
+        return config.has('grpc') ? config.grpc : config.grpcClient;
     }
 
     close () {
@@ -157,6 +171,7 @@ class GnatGrpc extends EventEmitter {
             if (!GnatGrpc._isServiceClient(Svc)) {
                 return;
             }
+
             const [pkgName, name] = GnatGrpc._splitServiceKey(path);
             arr.push({pkg: pkgName, name, Svc});
             this._registerSvc(path, Svc);
