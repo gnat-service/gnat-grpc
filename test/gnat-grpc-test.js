@@ -268,7 +268,7 @@ describe('GnatGrpc', () => {
                         } catch (e) {
                             const metadata = new grpc.Metadata();
                             metadata.set('gnat-grpc-error-code', `20000`);
-                            callback(Server._escapedError(e), null, metadata);
+                            callback(Server._safeEscapedError(e), null, metadata);
                         }
                     }
                 }
@@ -329,7 +329,7 @@ describe('GnatGrpc', () => {
                 expect(ret2).to.have.property('message').which.equal(`Hello ${name2}`);
             });
 
-            it('should catch the error threw by server', async () => {
+            it.only('should catch the error threw by server', async () => {
                 let ret;
                 let err;
                 const name = random.word();

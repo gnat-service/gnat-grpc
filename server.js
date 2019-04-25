@@ -43,7 +43,7 @@ const methodsHandler = function (ctx, methods) {
             } catch (e) {
                 if (GG._isCustomErr(e)) {
                     setTrailer({'gnat-grpc-error-code': `${e.code}`});
-                    err = GG._escapedError(e);
+                    err = GG._safeEscapedError(e);
                 }
             }
             callback(err, ret, trailer, flags);
