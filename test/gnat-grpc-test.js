@@ -797,6 +797,7 @@ describe('GnatGrpc', () => {
 
         context('wait connect ready', function () {
             let anotherClient;
+            let service;
             let connectionErrAssertions = [];
             const key = 'gnat.helloworld.Greeter';
             const getClient = ms =>
