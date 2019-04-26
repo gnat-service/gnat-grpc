@@ -1,9 +1,10 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
-const GG = require('./gnat-grpc');
-const config = require('./config');
-const utils = require('./utils');
+const GG = require('../gnat-grpc');
+const config = require('../config');
+const utils = require('../utils');
+const RetryStrategy = require('./retry');
 
 const {check} = utils;
 const {strOpt: checkStrOpt} = check;
@@ -31,6 +32,13 @@ class Client extends GG {
         this._loadPlugins();
         this.grpc = Client.grpc;
         this._channelsRefresher = null;
+        if (opts.interceptors) {
+            this.interceptors = opts.interceptors;
+        }
+        if (opts.retryStrategy) {
+            opts.retryStrategy.grpc = this.grpc;
+            this.interceptors = [new RetryStrategy(opts.retryStrategy).getInterceptor()];
+        }
     }
 
     _wrapMethods (key, Svc) {
@@ -104,11 +112,9 @@ class Client extends GG {
                             }, ...argus)
                         );
 
-                        const promiseMethods = ['then', 'catch'];
                         result.then = (...args) => promise.then(...args);
                         result.catch = (...args) => promise.catch(...args);
                         if (promise.finally) {
-                            promiseMethods.push('finally');
                             result.finally = (...args) => promise.finally(...args);
                         }
 
@@ -145,7 +151,11 @@ class Client extends GG {
         const ctx = this[containerSym][key];
         let c = ctx.client;
         if (!c) {
-            c = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), opts.channelOptions);
+            const channelOptions = Object.assign({}, opts.channelOptions);
+            if (this.interceptors) {
+                channelOptions.interceptors = this.interceptors.concat(channelOptions.interceptors || []);
+            }
+            c = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), channelOptions);
             ctx.client = c;
             this[containerSym][key].openedAt = Date.now();
         }
@@ -331,4 +341,5 @@ class Client extends GG {
     }
 }
 
+Client.RetryStrategy = RetryStrategy;
 module.exports = Client;
