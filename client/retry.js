@@ -36,13 +36,13 @@ module.exports = class RetryStrategy {
                             let retries = 0;
                             let retry;
 
+                            const execNext = (status, receivedMessage) => {
+                                savedMessageNext(receivedMessage);
+                                next(status);
+                            };
                             const exec = (message, metadata) => {
                                 const newCall = nextCall(options);
                                 let receivedMessage;
-                                const execNext = (status, receivedMessage) => {
-                                    savedMessageNext(receivedMessage);
-                                    next(status);
-                                };
                                 newCall.start(metadata, {
                                     onReceiveMessage(message) {
                                         receivedMessage = message;

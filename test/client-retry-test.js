@@ -53,12 +53,12 @@ describe('GnatGrpc.Client.RetryStrategy', () => {
             return {message: `Hello ${call.name}`};
         };
 
-        const getClient = shouldRetryWhen =>
+        const getClient = (shouldRetryWhen, x = maxRetries) =>
             Client.checkoutServicesSync({
                 bindPath: `localhost:${PORT}`,
                 services: [{filename: 'helloworld.proto'}],
                 retryStrategy: {
-                    maxRetries,
+                    maxRetries: x,
                     intervalMs: 0,
                     shouldRetryWhen
                 }
@@ -92,6 +92,38 @@ describe('GnatGrpc.Client.RetryStrategy', () => {
         });
         afterEach('tests done, shutdown client channels', () => client.close());
         afterEach('tests done, shutdown server', done => server.server.tryShutdown(done));
+
+        context('not retry', function () {
+            let count = 0;
+            let cbSpy;
+            beforeEach(() => {
+                cbSpy = spy((status, retries) => {
+                    const flag = status.code !== grpc.status.OK;
+                    count = retries;
+                    return flag;
+                });
+                client = getClient(cbSpy, 0);
+            });
+            it('should retry until `maxRetries` exceed', async () => {
+                const service = client.getService(key);
+                let err;
+                try {
+                    await service.throwAnErr({name, gender});
+                } catch (e) {
+                    err = e;
+                }
+
+                expect(methodSpy.callCount).to.equal(1);
+                expect(cbSpy.callCount).to.equal(0);
+                // 最后一次 retries 的变化不会被赋值给 count
+                expect(count).to.equal(0);
+                expect(err).to.have.property('code').that.equal(20000);
+                expect(err).to.have.property('details')
+                    .that.equal(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
+                expect(err).to.have.property('metadata').that.be.an.instanceOf(client.grpc.Metadata);
+                expect(err.metadata.get('gnat-grpc-error-code')).to.deep.equal(['20000']);
+            });
+        });
 
         context('when error keep occurring', function () {
             let count = 0;
