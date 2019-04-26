@@ -98,11 +98,9 @@ describe('GnatGrpc.Client.RetryStrategy', () => {
             let cbSpy;
             beforeEach(() => {
                 cbSpy = spy((status, retries) => {
-                  const flag = status.code !== grpc.status.OK;
-                  if (flag) {
+                    const flag = status.code !== grpc.status.OK;
                     count = retries;
-                  }
-                  return flag;
+                    return flag;
                 });
                 client = getClient(cbSpy);
             });
@@ -116,8 +114,9 @@ describe('GnatGrpc.Client.RetryStrategy', () => {
                 }
 
                 expect(methodSpy.callCount).to.equal(maxRetries + 1);
-                expect(cbSpy.callCount).to.equal(maxRetries + 1);
-                expect(count).to.equal(maxRetries);
+                expect(cbSpy.callCount).to.equal(maxRetries);
+                // 最后一次 retries 的变化不会被赋值给 count
+                expect(count).to.equal(maxRetries - 1);
                 expect(err).to.have.property('code').that.equal(20000);
                 expect(err).to.have.property('details')
                     .that.equal(`使用了错误的名字 "${name}"，写错了写错了写错了写错了写错了写错了写错了写错了`);
@@ -131,8 +130,9 @@ describe('GnatGrpc.Client.RetryStrategy', () => {
             let cbSpy;
             let recoveryAfterTimes;
             beforeEach(() => {
+                recoveryAfterTimes = 2;
                 cbSpy = spy((status, retries) => {
-                    recoveryAfterTimes = 2;
+                    console.log(status);
                     const flag = status.code !== grpc.status.OK;
                     if (flag) {
                         count = retries;
@@ -143,6 +143,9 @@ describe('GnatGrpc.Client.RetryStrategy', () => {
                     return flag;
                 });
                 client = getClient(cbSpy);
+            });
+            afterEach(() => {
+                recoveryAfterTimes = 0;
             });
             it('should retry until `maxRetries` exceed', async () => {
                 const service = client.getService(key);

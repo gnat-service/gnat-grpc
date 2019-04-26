@@ -48,16 +48,10 @@ module.exports = class RetryStrategy {
                                         receivedMessage = message;
                                     },
                                     onReceiveStatus(status) {
-                                        if (self.shouldRetryWhen(status, retries)) {
-                                            if (retries < self.maxRetries) {
-                                                retry(message, metadata);
-                                            } else {
-                                                execNext(status, receivedMessage);
-                                            }
+                                        if (retries < self.maxRetries && self.shouldRetryWhen(status, retries)) {
+                                            retry(message, metadata);
                                         } else {
-                                            const new_status = (new self.StatusBuilder())
-                                                .withCode(grpc.status.OK).build();
-                                            execNext(new_status, receivedMessage);
+                                            execNext(status, receivedMessage);
                                         }
                                     }
                                 });
@@ -73,7 +67,7 @@ module.exports = class RetryStrategy {
                                 }
                             };
 
-                            if (self.shouldRetryWhen(status, retries)) {
+                            if (self.maxRetries > 0 && self.shouldRetryWhen(status, retries)) {
                                 retry(savedSendMessage, savedMetadata);
                             } else {
                                 execNext(status, savedReceiveMessage);
