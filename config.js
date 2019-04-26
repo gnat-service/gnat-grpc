@@ -13,6 +13,7 @@ const cache = {
     cwd: process.cwd(),
     CUSTOM_ERR_CODE_OFFSET: 100,
     logger: console,
+    logVerbosity: -1,
     defaultLoaderOpts: null,
     escapeErrorAnyway: false,
 };
@@ -57,6 +58,13 @@ module.exports = {
             }
             cache[key] = configuration[key] || cache[key];
         });
+
+        if (cache.grpc) {
+            cache.grpc.setLogger(cache.logger);
+            if (cache.logVerbosity >= 0) {
+                cache.grpc.setLogVerbosity(cache.logVerbosity);
+            }
+        }
 
         cache.CUSTOM_ERR_CODE_OFFSET = cache.CUSTOM_ERR_CODE_OFFSET || configuration.customErrCodeOffset;
         cache.root = cache.root || PATH.join(cache.cwd, cache.protoDir);

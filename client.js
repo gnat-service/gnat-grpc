@@ -29,7 +29,6 @@ class Client extends GG {
         this._clients = {};
         this[containerSym] = {};
         this._loadPlugins();
-        this.waitClientReadyForMs = opts.waitClientReadyForMs || 0;
         this.grpc = Client.grpc;
         this._channelsRefresher = null;
     }
@@ -89,31 +88,31 @@ class Client extends GG {
                             callback(err, res, ...argus);
                         };
 
-                        const exec = () => {
-                            if (len && isFn(callback)) {
-                                args[len - 1] = (...argus) =>
-                                    resHandler(callback, ...argus);
-                                return svcClient[name](...args);
-                            }
-                            return new Promise((resolve, reject) => {
-                                svcClient[name](...args, (...argus) =>
-                                    resHandler((err, res) => {
-                                        err ? reject(err) : resolve(res)
-                                    }, ...argus)
-                                );
-                            });
-                        };
-
-                        if (self.waitClientReadyForMs) {
-                            const p = new Promise((resolve) => {
-                                svcClient.waitForReady(Date.now() + self.waitClientReadyForMs, err => {
-                                    self.emit('connectionReady', err);
-                                    resolve();
-                                });
-                            });
-                            return p.then(exec);
+                        if (len && isFn(callback)) {
+                            args[len - 1] = (...argus) =>
+                                resHandler(callback, ...argus);
+                            return svcClient[name](...args);
                         }
-                        return exec();
+
+                        const p = {};
+                        const promise = new Promise((resolve, reject) => {
+                            Object.assign(p, {resolve, reject});
+                        });
+                        const result = svcClient[name](...args, (...argus) =>
+                            resHandler((err, res) => {
+                                err ? p.reject(err) : p.resolve(res)
+                            }, ...argus)
+                        );
+
+                        const promiseMethods = ['then', 'catch'];
+                        result.then = (...args) => promise.then(...args);
+                        result.catch = (...args) => promise.catch(...args);
+                        if (promise.finally) {
+                            promiseMethods.push('finally');
+                            result.finally = (...args) => promise.finally(...args);
+                        }
+
+                        return result;
                     }
                 }
             );

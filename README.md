@@ -77,3 +77,7 @@ const {Client} = require('gnat-grpc');
   console.log(ret); // {message: 'Hello World'}
 })();
 ```
+
+## To Do
+
+// 支持 client retry
