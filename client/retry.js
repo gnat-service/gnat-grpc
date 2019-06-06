@@ -1,4 +1,5 @@
 const grpc = require('grpc');
+const config = require('../config');
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -11,6 +12,11 @@ module.exports = class RetryStrategy {
         this.ListenerBuilder = grpc.ListenerBuilder;
         this.RequesterBuilder = grpc.RequesterBuilder;
         this.InterceptingCall = grpc.InterceptingCall;
+        config.logger.info(`Gnat grpc retry strategy setup:
+  maxRetries: ${maxRetries}
+  intervalMs: ${intervalMs}
+  shouldRetryWhen: ${this.shouldRetryWhen.toString().replace('\n', '\\n')}
+        `);
     }
 
     _onStatusStrategy(status) {
@@ -37,6 +43,7 @@ module.exports = class RetryStrategy {
                             let retry;
 
                             const execNext = (status, receivedMessage) => {
+                                config.logger.debug(`Retry done, call next with status: ${status}`);
                                 savedMessageNext(receivedMessage);
                                 next(status);
                             };
@@ -60,6 +67,7 @@ module.exports = class RetryStrategy {
                             };
                             retry = function (message, metadata) {
                                 retries++;
+                                config.logger.debug(`Retry at ${retries} time.`);
                                 if (self.intervalMs) {
                                     wait(self.intervalMs).then(() => exec(message, metadata));
                                 } else {
@@ -67,6 +75,7 @@ module.exports = class RetryStrategy {
                                 }
                             };
 
+                            config.logger.debug(`Retry at ${retries} time.`);
                             if (self.maxRetries > 0 && self.shouldRetryWhen(status, retries)) {
                                 retry(savedSendMessage, savedMetadata);
                             } else {

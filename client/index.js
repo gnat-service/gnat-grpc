@@ -32,12 +32,10 @@ class Client extends GG {
         this._loadPlugins();
         this.grpc = Client.grpc;
         this._channelsRefresher = null;
-        if (opts.interceptors) {
-            this.interceptors = opts.interceptors;
-        }
+        this._interceptors = opts.interceptors || [];
         if (opts.retryStrategy) {
             opts.retryStrategy.grpc = this.grpc;
-            this.interceptors = [new RetryStrategy(opts.retryStrategy).getInterceptor()];
+            this._interceptors.push(new RetryStrategy(opts.retryStrategy).getInterceptor());
         }
     }
 
@@ -152,8 +150,8 @@ class Client extends GG {
         let c = ctx.client;
         if (!c) {
             const channelOptions = Object.assign({}, opts.channelOptions);
-            if (this.interceptors) {
-                channelOptions.interceptors = this.interceptors.concat(channelOptions.interceptors || []);
+            if (this._interceptors) {
+                channelOptions.interceptors = this._interceptors.concat(channelOptions.interceptors || []);
             }
             c = new Svc(opts.bindPath, opts.credentials || this.grpc.credentials.createInsecure(), channelOptions);
             ctx.client = c;
