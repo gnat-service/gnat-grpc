@@ -64,6 +64,7 @@ bin
 .editorconfig
 
 .idea
+.vscode
 
 test
 
