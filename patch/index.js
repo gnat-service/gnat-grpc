@@ -1,9 +1,11 @@
-const clone = require('lodash.clone');
+const wrapStorage = require('./storage');
+const wrapResolver = require('./resolver');
+const wrapper = require('./wrapper');
 
 const GOOGLE_PROTO_PRIFIX = 'google.protobuf.';
 const getFullTypeVal = name => `${GOOGLE_PROTO_PRIFIX}${name}`;
 const getFullTypeName = name => `.${getFullTypeVal(name)}`;
-const transforms = {};
+const {setTransform, setWrapper} = wrapper;
 
 const floatTypes = ['DoubleValue', 'FloatValue'].map(getFullTypeVal);
 const intTypes = ['Int64Value', 'UInt64Value', 'Int32Value', 'UInt32Value'].map(getFullTypeVal);
@@ -36,75 +38,13 @@ const parseByType = (val, type) => {
     return val;
 };
 
-const wrap = (self, methodName, hook) => {
-    const fn = self[methodName];
-    if (fn._transformWrapped) {
-        return;
-    }
-
-    const transform = (ctx, d, fullName, typeMapping, args) => {
-        const hasTransform = transforms[fullName];
-        if (hasTransform) {
-            d = transforms[fullName][methodName].call(ctx, d, ...args);
-        }
-
-        typeMapping.forEach(({name, resolvedType, field}) => {
-            if (!resolvedType) {
-                return;
-            }
-            const {fullName} = resolvedType;
-            if (transforms[fullName]) {
-                d[name] = transforms[fullName][methodName].call(field, d[name], ...args);
-            }
-        });
-        return d;
-    };
-
-    self[methodName] = function (d, ...args) {
-        const {fullName} = this;
-
-        const typeMapping = this._fieldsArray.map(field => {
-            const {resolvedType} = field.resolve();
-            return {name: field.name, resolvedType, field};
-        });
-        if ([null, undefined].includes(d)) {
-            return fn.call(this, d, ...args);
-        }
-
-        if (hook === 'pre') {
-            d = transform(this, clone(d), fullName, typeMapping, args);
-        }
-
-        let r = fn.call(this, d, ...args);
-
-        if (hook === 'post') {
-            return transform(this, r, fullName, typeMapping, args);
-        }
-        return r;
-    };
-    self[methodName]._transformWrapped = true;
+exports.protobufjs = (protobufjs, storage) => {
+    wrapStorage(protobufjs, storage);
+    wrapResolver(protobufjs);
+    wrapper.wrapTransformers(protobufjs);
 };
 
-exports.protobufjs = protobufjs => {
-    const {resolvePath} = protobufjs.Root.prototype;
-    const {setup} = protobufjs.Type.prototype;
-
-    protobufjs.Root.prototype.resolvePath = function (originPath, includePath, ...args) {
-        if (includePath.indexOf('google/protobuf/') === 0) {
-            originPath = '';
-        }
-        return resolvePath.call(this, originPath, includePath, ...args);
-    };
-
-    protobufjs.Type.prototype.setup = function () {
-        setup.apply(this, arguments);
-        wrap(this, 'fromObject', 'pre');
-        wrap(this, 'toObject', 'post');
-        return this;
-    };
-};
-
-const wrapTransform = (ctx, method, fullName, fn, o, ...args) => {
+const normalizeTransform = (ctx, fn, o, ...args) => {
     if (ctx.repeated) {
         if (!o) {
             return o;
@@ -128,12 +68,9 @@ const wrapTransform = (ctx, method, fullName, fn, o, ...args) => {
     return fn(o, ...args);
 };
 
-const wrapFromObjTrans = (ctx, ...args) => wrapTransform(ctx, 'fromObject', ...args);
-const wrapToObjTrans = (ctx, ...args) => wrapTransform(ctx, 'toObject', ...args);
-
 exports.wrapBaseType = type => {
     const fullName = getFullTypeName(type);
-    transforms[fullName] = {
+    const trans = {
         fromObject (o) {
             const fn = o => {
                 const t = typeof o;
@@ -144,7 +81,7 @@ exports.wrapBaseType = type => {
                 return o;
             };
 
-            return wrapFromObjTrans(this, fullName, fn, o);
+            return normalizeTransform(this, fn, o);
         },
         toObject (m) {
             const fn = m => {
@@ -159,14 +96,15 @@ exports.wrapBaseType = type => {
                 return parseByType(m.value, fullName);
             };
 
-            return wrapToObjTrans(this, fullName, fn, m);
+            return normalizeTransform(this, fn, m);
         }
     };
+    setTransform(fullName, trans);
 };
 
 exports.wrapDate = () => {
     const fullName = getFullTypeName('Timestamp');
-    transforms[fullName] = {
+    const trans = {
         fromObject (o) {
             const fn = o => {
                 if (!o && o !== 0) {
@@ -187,7 +125,7 @@ exports.wrapDate = () => {
                 return {seconds, nanos};
             };
 
-            return wrapFromObjTrans(this, fullName, fn, o);
+            return normalizeTransform(this, fn, o);
         },
 
         toObject (m) {
@@ -209,9 +147,10 @@ exports.wrapDate = () => {
                 return new Date(seconds * 1000 + nanos);
             };
 
-            return wrapToObjTrans(this, fullName, fn, m);
+            return normalizeTransform(this, fn, m);
         }
     };
+    setTransform(fullName, trans);
 };
 
 exports.setDftParseOpts = (protobufjs, opts) => {
@@ -219,22 +158,6 @@ exports.setDftParseOpts = (protobufjs, opts) => {
     Object.assign(protobufjs.parse.defaults, {keepCase: true}, opts);
 };
 
-exports.setTransform = (fullName, trans) => {
-    if (!trans) {
-        throw new TypeError(`Expect an object, got an empty value.`);
-    }
-    if (['fromObject', 'toObject'].some(f => !trans[f])) {
-        throw new TypeError(`Expect both \`transform.fromObject\` \`transform.toObject\` to be functions.`);
-    }
-    transforms[fullName] = trans;
-};
+exports.setTransform = setTransform;
 
-exports.setWrapper = (protobufjs, fullName, wrappers) => {
-    if (!wrappers) {
-        throw new TypeError(`Expect an object, got an empty value.`);
-    }
-    if (['fromObject', 'toObject'].some(f => !wrappers[f])) {
-        throw new TypeError(`Expect both \`wrapper.fromObject\` \`wrapper.toObject\` to be functions.`);
-    }
-    protobufjs.wrappers[fullName] = wrappers;
-};
+exports.setWrapper = setWrapper;

@@ -3,11 +3,13 @@
  */
 const {Server, config: ggConf} = require('../../');
 const config = require('./config');
+const path = require('path');
 const grpc = require('grpc');
 
 ggConf({
     grpc,
-    protoLoader: require('@grpc/proto-loader')
+    protoLoader: require('@grpc/proto-loader'),
+    root: path.join(__dirname, '.proto')
 });
 const {PORT, APP_PORT} = config;
 

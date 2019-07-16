@@ -13,6 +13,7 @@ const cache = {
     cwd: process.cwd(),
     CUSTOM_ERR_CODE_OFFSET: 100,
     logger: console,
+    storage: null,
     logVerbosity: -1,
     defaultLoaderOpts: null,
     escapeErrorAnyway: false,
@@ -76,7 +77,7 @@ module.exports = {
             protobufjs = require('protobufjs');
         }
         cache.protobufjs = protobufjs;
-        patch.protobufjs(protobufjs);
+        patch.protobufjs(protobufjs, cache.storage);
 
         if (wrapBaseType) {
             [
