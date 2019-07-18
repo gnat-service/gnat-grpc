@@ -12,5 +12,6 @@ module.exports = {
     Server,
     Client,
     config: config._config,
-    addTransforms: config.addTransforms
+    addTransforms: config.addTransforms,
+    setProtoFetcher: config.setProtoFetcher,
 };
