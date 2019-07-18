@@ -1,27 +1,17 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
-const GG = require('../gnat-grpc');
 const config = require('../config');
 const Server = require('../server');
 const Client = require('../client');
 const PATH = require('path');
-const get = require('lodash.get');
 const {expect} = require('chai');
-const {random, lorem} = require('faker');
+const {random} = require('faker');
 const {spy} = require('sinon');
 
-const protoLoader = require('@grpc/proto-loader');
-
 const ggConf = {
-    grpc: require('grpc'),
-    protoLoader,
-    // protobufjs,
     root: PATH.join(__dirname, 'proto'),
 };
-// if (Math.random() > .5) {
-//     ggConf.grpcClient = grpcClient;
-// }
 
 config._config(ggConf);
 const {grpc} = config;

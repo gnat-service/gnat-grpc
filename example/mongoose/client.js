@@ -1,18 +1,14 @@
 /**
  * Created by leaf4monkey on 04/17/2018
  */
-const grpc = require('grpc');
 const gnatGrpc = require('../../');
 const PATH = require('path');
 const transformPatch = require('./patch');
 
 const root = PATH.join(__dirname, '.proto');
-const OrderProto = PATH.join(__dirname, '.proto/gnat/grpc/order.proto');
 const PORT = 50051;
 
 gnatGrpc.config({
-    grpc,
-    protoLoader: require('@grpc/proto-loader'),
     root
 });
 transformPatch(gnatGrpc);

@@ -132,16 +132,16 @@ class Client extends GG {
     getMetadata (key, obj) {
         let metadata;
         const {Metadata} = this.grpc;
-        if (obj instanceof Metadata) {
+        if (GG.isMetadata(obj)) {
             [metadata, obj] = [obj, null];
         } else {
             metadata = new Metadata();
         }
         const ctx = this[containerSym][key];
         obj = Object.assign({service: key, 'x-gnat-grpc-service': key}, ctx.metadata, obj);
-        Object.keys(obj).forEach(k =>
+        Object.keys(obj).forEach(k => {
             metadata.set(k, obj[k])
-        );
+        });
         return metadata;
     }
 

@@ -3,16 +3,11 @@
  */
 const {Client, config: ggConf} = require('../../');
 const config = require('./config');
-// const grpc = require('grpc');
 const grpcClient = require('@grpc/grpc-js');
 
-ggConf({
-    // grpc,
-    grpcClient,
-    protoLoader: require('@grpc/proto-loader')
-});
 const {PORT} = config;
 
+ggConf({grpcClient});
 (async () => {
     const client = new Client();
     const service = await client.checkout({

@@ -5,18 +5,14 @@
 const db = require('./db');
 const initData = require('./init-data');
 const gnatGrpc = require('../../');
-const grpc = require('grpc');
 const PATH = require('path');
 const _ = require('lodash');
 const transformPatch = require('./patch');
 
 const root = PATH.join(__dirname, '.proto');
-const OrderProto = PATH.join(__dirname, '.proto/gnat/grpc/order.proto');
 const PORT = 50051;
 
 gnatGrpc.config({
-    grpc,
-    protoLoader: require('@grpc/proto-loader'),
     root
 });
 transformPatch(gnatGrpc);
@@ -24,7 +20,6 @@ transformPatch(gnatGrpc);
 const {Server} = gnatGrpc;
 
 const mongoose = require('mongoose');
-const cloneDeepWith = (obj, callback) => _.cloneDeepWith(obj, callback);
 
 const cb = function (value, key, object, stack) {
     console.log(value);

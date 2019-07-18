@@ -48,6 +48,7 @@ const needEscapeErr = () => {
 class GnatGrpc extends EventEmitter {
     constructor ({events = [], isServer} = {}) {
         super();
+        config._config();
         this.services = {};
         this.roots = {};
         this[isServerSym] = !!isServer;
@@ -159,6 +160,16 @@ class GnatGrpc extends EventEmitter {
             Object.assign(config.defaultLoaderOpts, opts.loadOpts) :
             opts.loadOpts;
         return {protoPath: opts.protoPath, loadOpts};
+    }
+
+    static isMetadata (obj) {
+        if (!obj) {
+            return false;
+        }
+        if (config.has('grpc') && obj instanceof config.grpc.Metadata) {
+            return true;
+        }
+        return config.has('grpcClient') && obj instanceof config.grpcClient.Metadata;
     }
 
     _parseDefPkg (pkg) {

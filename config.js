@@ -3,11 +3,29 @@
  */
 const PATH = require('path');
 const patch = require('./patch');
+const protoLoader = require('@grpc/proto-loader');
+
+let grpc = null;
+let grpcClient = null;
+let protobufjs = null;
+
+try {
+    grpc = require('grpc');
+} catch (e) {
+    grpcClient = require('@grpc/grpc-js');
+}
+try {
+    protobufjs = require('@grpc/proto-loader/node_modules/protobufjs');
+} catch (e) {
+    protobufjs = require('protobufjs');
+}
+
+let initialized = false;
 
 const cache = {
-    grpc: null,
-    grpcClient: null,
-    protoLoader: null,
+    grpc,
+    grpcClient,
+    protoLoader,
     root: null,
     protoDir: '.proto',
     cwd: process.cwd(),
@@ -35,6 +53,11 @@ const addTransforms = (transformsSet) => {
 
 module.exports = {
     _config: (configuration = {}) => {
+        if (initialized) {
+            return;
+        }
+
+        initialized = true;
         const {
             defaultParseOpts,
             wrapDate = true,
@@ -70,12 +93,6 @@ module.exports = {
         cache.CUSTOM_ERR_CODE_OFFSET = cache.CUSTOM_ERR_CODE_OFFSET || configuration.customErrCodeOffset;
         cache.root = cache.root || PATH.join(cache.cwd, cache.protoDir);
 
-        let protobufjs;
-        try {
-            protobufjs = require('@grpc/proto-loader/node_modules/protobufjs');
-        } catch (e) {
-            protobufjs = require('protobufjs');
-        }
         cache.protobufjs = protobufjs;
         patch.protobufjs(protobufjs, cache.storage);
 
@@ -97,6 +114,10 @@ module.exports = {
             patch.setWrapper(protobufjs, fullName, wrappers)
         );
         addTransforms(transformsSet);
+    },
+
+    setProtoFetcher (storage) {
+        patch.setProtoFetcher(protobufjs, storage);
     },
 
     addTransforms,
@@ -133,5 +154,8 @@ module.exports = {
     },
     get escapeErrorAnyway () {
         return getConfigured('escapeErrorAnyway');
+    },
+    get initialized () {
+        return initialized;
     }
 };

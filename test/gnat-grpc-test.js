@@ -9,23 +9,9 @@ const PATH = require('path');
 const get = require('lodash.get');
 const {expect} = require('chai');
 const {random, lorem} = require('faker');
-const {spy} = require('sinon');
-
 const protoLoader = require('@grpc/proto-loader');
-const grpcClient = require('@grpc/grpc-js');
-const protobufjs = require('protobufjs');
 
-const ggConf = {
-    grpc: require('grpc'),
-    protoLoader,
-    // protobufjs,
-    root: PATH.join(__dirname, 'proto'),
-};
-// if (Math.random() > .5) {
-//     ggConf.grpcClient = grpcClient;
-// }
-
-config._config(ggConf);
+config._config();
 const {grpc} = config;
 
 let PORT = 50054;

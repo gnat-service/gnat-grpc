@@ -1,17 +1,10 @@
 /**
  * Created by leaf4monkey on 04/10/2018
  */
-const {Server, config: ggConf} = require('../../');
+const {Server} = require('../../');
 const config = require('./config');
-const path = require('path');
-const grpc = require('grpc');
 
-ggConf({
-    grpc,
-    protoLoader: require('@grpc/proto-loader'),
-    root: path.join(__dirname, '.proto')
-});
-const {PORT, APP_PORT} = config;
+const {PORT} = config;
 
 const sayHello = async function (args, metadata) {
     const {name, gender} = args;

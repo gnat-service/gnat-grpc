@@ -38,6 +38,10 @@ const parseByType = (val, type) => {
     return val;
 };
 
+exports.setProtoFetcher = (protobufjs, storage) => {
+    wrapStorage(protobufjs, storage);
+};
+
 exports.protobufjs = (protobufjs, storage) => {
     wrapStorage(protobufjs, storage);
     wrapResolver(protobufjs);

@@ -1,13 +1,10 @@
 /**
  * Created by leaf4monkey on 04/20/2018
  */
-const {Server, Client, config: ggConf} = require('../');
-const PATH = require('path');
+const {Server, Client} = require('../');
 const camelCase = require('lodash.camelcase');
 const capitalize = require('lodash.capitalize');
 const times = require('lodash.times');
-const isEmpty = require('lodash.isempty');
-const grpc = require('grpc');
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
 const {random, date: randomDate} = require('faker');
@@ -173,13 +170,6 @@ const getObjMethods = {
     }
 };
 
-const root = PATH.join(__dirname, 'proto');
-
-ggConf({
-    grpc,
-    protoLoader: require('@grpc/proto-loader'),
-    root,
-});
 const PORT = 50021;
 
 describe('Base types wrapper', () => {
