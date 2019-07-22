@@ -8,10 +8,10 @@ const transformPatch = require('./patch');
 const root = PATH.join(__dirname, '.proto');
 const PORT = 50051;
 
-gnatGrpc.config({
-    root
-});
 transformPatch(gnatGrpc);
+// gnatGrpc.config({
+//     root
+// });
 
 const {Client} = gnatGrpc;
 

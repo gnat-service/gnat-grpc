@@ -136,7 +136,7 @@ class GnatGrpc extends EventEmitter {
     }
 
     _loadPlugins () {
-        plugins.forEach(plugin => plugin(this));
+        plugins.forEach(plugin => plugin(this, config));
     }
 
     _registerSvc (key, Svc) {
