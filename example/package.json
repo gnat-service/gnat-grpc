@@ -10,7 +10,7 @@
     "grpc": "^1.19.0",
     "lodash": "^4.17.13",
     "mongoose": "^5.0.15",
-    "snyk": "^1.189.0"
+    "snyk": "^1.214.0"
   },
   "scripts": {
     "snyk-protect": "snyk protect",
